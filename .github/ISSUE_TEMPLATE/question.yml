@@ -1,0 +1,28 @@
+name: ❓ Question / support
+description: Ask a question about using or contributing to Denshees
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a question? Ask away. For general discussion, consider starting a Discussion instead if enabled.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Pre-flight checks
+      options:
+        - label: I searched existing issues and the README / CLAUDE.md docs
+          required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      description: What would you like to know?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What are you trying to achieve? Include relevant setup details.

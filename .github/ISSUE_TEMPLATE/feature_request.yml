@@ -1,0 +1,54 @@
+name: ✨ Feature request
+description: Suggest a new feature or improvement
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing an idea to make Denshees better!
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Pre-flight checks
+      options:
+        - label: I searched existing issues and this hasn't been requested yet
+          required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      description: Which part of Denshees would this touch?
+      options:
+        - Frontend (Next.js UI / API routes)
+        - Backend (Hono + BullMQ workers)
+        - Agents (FastAPI + LangGraph)
+        - Database / Prisma
+        - Infra (Docker / CI-CD / nginx)
+        - Cross-cutting / not sure
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the pain point or use case. "I'm frustrated when..."
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: What would you like to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you thought about, if any.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Mockups, links, or references.

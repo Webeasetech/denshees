@@ -1,0 +1,77 @@
+name: 🐛 Bug report
+description: Report something that isn't working as expected
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill in as much detail as you can — it helps us reproduce and fix it faster.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Pre-flight checks
+      options:
+        - label: I searched existing issues and this hasn't been reported yet
+          required: true
+        - label: I'm running the latest version of the `main` branch (or a recent release)
+          required: false
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      description: Which part of Denshees is affected?
+      options:
+        - Frontend (Next.js UI / API routes)
+        - Backend (Hono + BullMQ workers)
+        - Agents (FastAPI + LangGraph)
+        - Database / Prisma
+        - Infra (Docker / CI-CD / nginx)
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug.
+      placeholder: When I ran a campaign, emails stopped sending after stage 0...
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce it?
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. See error
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen instead?
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs / errors
+      description: Paste any logs, stack traces, or console output. This is auto-formatted as code.
+      render: shell
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Node/pnpm version, browser, deployment (local / Docker / Hetzner)
+      placeholder: macOS 15, Node 20, pnpm 9, local dev
+    validations:
+      required: false
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots, recordings, or anything else that helps.
