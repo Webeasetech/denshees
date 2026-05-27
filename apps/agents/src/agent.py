@@ -5,8 +5,6 @@ The graph follows a Reason → Act → Observe loop:
 until the LLM produces a final response with no tool calls.
 """
 
-import src.config  # noqa: F401  — loads .env
-
 from langchain_core.messages import SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_openai import ChatOpenAI
@@ -15,6 +13,7 @@ from langgraph.graph import END, StateGraph
 from langgraph.prebuilt import ToolNode
 from langsmith import traceable
 
+import src.config  # noqa: F401  — loads .env
 from src.state import AgentState
 from src.tools import (
     add_lead_to_list,
