@@ -1,0 +1,85 @@
+name: CI
+
+# Basic merge-readiness checks for every PR targeting main.
+# Mirrors the local commands: lint, build, and tests.
+on:
+  pull_request:
+    branches: [main]
+  # Allow manual runs from the Actions tab
+  workflow_dispatch:
+  # Allow other workflows (e.g. deploy) to run these checks as a gate
+  workflow_call:
+
+# Cancel in-progress runs for the same PR when new commits are pushed
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node:
+    name: Lint, build & test (Node)
+    runs-on: ubuntu-latest
+    # Placeholder envs so prisma generate + next build don't fail on missing config.
+    # These are NOT real secrets — build-time only, never used to connect anywhere.
+    env:
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db?schema=public"
+      JWT_SECRET: "ci-placeholder"
+      API_KEY: "ci-placeholder"
+      OPENAI_API_KEY: "ci-placeholder"
+      DODO_PAYMENTS_API_KEY: "ci-placeholder"
+      TRIGGER_SECRET_KEY: "ci-placeholder"
+      SMTP_USER: "ci-placeholder"
+      SMTP_PASS: "ci-placeholder"
+      SUPPORT_NOTIFY_EMAILS: "ci@example.com"
+      BACKEND_URL: "http://localhost:8100"
+      AGENT_URL: "http://localhost:8050"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @denshees/database build
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build
+        run: pnpm build
+
+      - name: Backend tests
+        run: pnpm --filter denshees-backend test
+
+  agents:
+    name: Lint & test (Python agents)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/agents
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Ruff lint
+        run: ruff check .
+
+      - name: Pytest
+        run: pytest -q

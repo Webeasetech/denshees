@@ -339,8 +339,9 @@ async def import_contacts_to_campaign(
     contacts: list[dict],
     config: RunnableConfig = None,
 ) -> str:
-    """Import contacts into a campaign. Each contact needs name and email, personalization is optional.
+    """Import contacts into a campaign.
 
+    Each contact needs name and email; personalization is optional.
     contacts example: [{"name": "Jane", "email": "jane@co.com", "personalization": "Met at conf"}]
     """
     data = await _post(
@@ -440,7 +441,7 @@ async def get_campaign_activities(
 @tool
 @traceable(name="get_dashboard_stats")
 async def get_dashboard_stats(config: RunnableConfig = None) -> str:
-    """Get overall dashboard stats: total contacts, campaigns, emails sent, responses, opens, replies."""
+    """Get overall dashboard stats: contacts, campaigns, emails sent, responses, opens, replies."""
     data = await _get("/api/dashboard/stats", config)
     return json.dumps(data, default=str)
 

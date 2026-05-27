@@ -5,9 +5,8 @@ import json
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
-from pydantic import BaseModel
-
 from langsmith import traceable
+from pydantic import BaseModel
 
 from src.agent import graph
 from src.state import AgentState
@@ -46,7 +45,8 @@ async def chat_stream(req: ChatRequest):
 
                 elif kind == "on_tool_end":
                     output = str(event["data"].get("output", ""))
-                    yield f"data: {json.dumps({'type': 'tool_end', 'name': event['name'], 'output': output})}\n\n"
+                    payload = {"type": "tool_end", "name": event["name"], "output": output}
+                    yield f"data: {json.dumps(payload)}\n\n"
 
         except Exception as e:
             yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
