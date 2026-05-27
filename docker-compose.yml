@@ -85,6 +85,7 @@ services:
       - BACKEND_URL=http://frontend:3000
       - LANGSMITH_API_KEY=${LANGSMITH_API_KEY:-}
       - LANGSMITH_PROJECT=${LANGSMITH_PROJECT:-}
+      - LANGSMITH_TRACING=${LANGSMITH_TRACING:-false}
       - DATABASE_URL=${DATABASE_URL}
     depends_on:
       - frontend

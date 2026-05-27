@@ -19,7 +19,7 @@ jobs:
           script: |
             # Clone repo on first deploy, pull on subsequent ones
             if [ ! -d /app ]; then
-              git clone https://github.com/anasaijaz/denshees.git /app
+              git clone https://github.com/Webeasetech/denshees.git /app
             fi
 
             cd /app
@@ -37,6 +37,7 @@ jobs:
             SUPPORT_NOTIFY_EMAILS=${{ secrets.SUPPORT_NOTIFY_EMAILS }}
             LANGSMITH_API_KEY=${{ secrets.LANGSMITH_API_KEY }}
             LANGSMITH_PROJECT=${{ secrets.LANGSMITH_PROJECT }}
+            LANGSMITH_TRACING=${{ secrets.LANGSMITH_TRACING }}
             LETSENCRYPT_EMAIL=${{ secrets.LETSENCRYPT_EMAIL }}
             REDIS_PORT=6379
             EOF
