@@ -24,6 +24,13 @@ jobs:
       JWT_SECRET: "ci-placeholder"
       API_KEY: "ci-placeholder"
       OPENAI_API_KEY: "ci-placeholder"
+      DODO_PAYMENTS_API_KEY: "ci-placeholder"
+      TRIGGER_SECRET_KEY: "ci-placeholder"
+      SMTP_USER: "ci-placeholder"
+      SMTP_PASS: "ci-placeholder"
+      SUPPORT_NOTIFY_EMAILS: "ci@example.com"
+      BACKEND_URL: "http://localhost:8100"
+      AGENT_URL: "http://localhost:8050"
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v4
