@@ -22,6 +22,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
+          command_timeout: 20m
           script: |
             # Clone repo on first deploy, pull on subsequent ones
             if [ ! -d /app ]; then
