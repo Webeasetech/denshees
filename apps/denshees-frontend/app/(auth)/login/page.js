@@ -126,14 +126,6 @@ export default function LoginPage() {
               </div>
             </div>
           </div>
-
-          <div className="mt-12">
-            <p className="text-sm text-gray-600">
-              New here? No separate sign-up — just{" "}
-              <span className="font-medium text-black">Continue with Google</span>{" "}
-              and your account is created automatically.
-            </p>
-          </div>
         </div>
       </div>
 
@@ -149,10 +141,6 @@ export default function LoginPage() {
 
           <div className="space-y-4">
             <GoogleButton />
-            <p className="text-center text-xs text-gray-500">
-              New here? Continuing with Google creates your account
-              automatically.
-            </p>
 
             <div className="flex items-center gap-3">
               <div className="h-px flex-1 bg-gray-300" />
