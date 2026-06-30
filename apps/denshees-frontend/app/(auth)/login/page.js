@@ -8,6 +8,7 @@ import { ArrowRightIcon } from "mage-icons-react/stroke";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import GoogleButton from "@/components/auth/google-button";
 import useAuthStore from "@/store/auth.store";
 
 export default function LoginPage() {
@@ -154,6 +155,14 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-4">
+            <GoogleButton />
+
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-gray-300" />
+              <span className="text-sm text-gray-500">or</span>
+              <div className="h-px flex-1 bg-gray-300" />
+            </div>
+
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
                 <label

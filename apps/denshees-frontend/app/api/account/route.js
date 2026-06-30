@@ -25,6 +25,7 @@ export async function GET(request) {
         created: true,
         updated: true,
         millionVerifierApiKey: true,
+        password: true,
       },
     });
 
@@ -32,7 +33,10 @@ export async function GET(request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json(user);
+    // Never leak the hash — expose only whether a password is set, so the
+    // Settings UI can show "Set password" vs "Change password".
+    const { password, ...rest } = user;
+    return NextResponse.json({ ...rest, hasPassword: !!password });
   } catch (error) {
     console.error("[API] Error fetching user account:", error);
     return NextResponse.json(
