@@ -11,7 +11,7 @@ import { useState } from "react";
 import useSWR from "swr";
 import fetcher from "@/lib/fetcher";
 import useSWRMutation from "swr/mutation";
-import { patch } from "@/lib/apis";
+import { patch, post } from "@/lib/apis";
 import { toast } from "sonner";
 import { SettingsNav } from "@/components/settings/settings-nav";
 
@@ -25,8 +25,9 @@ export default function AccountSettingsPage() {
           <SettingsNav />
         </div>
 
-        <div className="md:col-span-3">
+        <div className="md:col-span-3 space-y-6">
           <AccountSettings />
+          <PasswordSettings />
         </div>
       </div>
     </div>
@@ -243,7 +244,7 @@ function AccountSettings() {
         </form>
       </div>
 
-      <div className="border border-black bg-white p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+      <div id="account-details" className="border border-black bg-white p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
         <h2 className="text-xl font-bold mb-6">Account Details</h2>
 
         <div className="space-y-4">
@@ -264,6 +265,152 @@ function AccountSettings() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function PasswordSettings() {
+  const { data: userData, mutate: refreshUserData } = useSWR(
+    "/api/account",
+    fetcher,
+  );
+  const hasPassword = userData?.hasPassword;
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
+  const { trigger: updatePassword, isMutating } = useSWRMutation(
+    "/api/account/password",
+    post,
+    {
+      onSuccess: () => {
+        toast.success("Password updated successfully");
+        reset();
+        refreshUserData();
+      },
+      onError: (error) => {
+        toast.error(
+          error?.response?.data?.error || "Failed to update password",
+        );
+      },
+    },
+  );
+
+  const onSubmit = async (data) => {
+    if (data.newPassword !== data.confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    try {
+      await updatePassword({
+        currentPassword: data.currentPassword || undefined,
+        newPassword: data.newPassword,
+      });
+    } catch {
+      // handled by onError
+    }
+  };
+
+  return (
+    <div className="border border-black bg-white p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+      <h2 className="text-xl font-bold mb-2">
+        {hasPassword ? "Change password" : "Set a password"}
+      </h2>
+      <p className="text-sm text-gray-600 mb-6">
+        {hasPassword
+          ? "Update the password used for email & password login."
+          : "Set a password to enable email & password login in addition to Google sign-in."}
+      </p>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {hasPassword && (
+          <div className="space-y-2">
+            <Label htmlFor="currentPassword">Current password</Label>
+            <Input
+              id="currentPassword"
+              type="password"
+              autoComplete="current-password"
+              {...register("currentPassword", {
+                required: "Current password is required",
+              })}
+              className={errors.currentPassword ? "border-red-500" : ""}
+            />
+            {errors.currentPassword && (
+              <p className="text-red-500 text-sm">
+                {errors.currentPassword.message}
+              </p>
+            )}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label htmlFor="newPassword">New password</Label>
+            <Input
+              id="newPassword"
+              type="password"
+              autoComplete="new-password"
+              {...register("newPassword", {
+                required: "New password is required",
+                minLength: {
+                  value: 8,
+                  message: "Password must be at least 8 characters",
+                },
+              })}
+              className={errors.newPassword ? "border-red-500" : ""}
+            />
+            {errors.newPassword && (
+              <p className="text-red-500 text-sm">
+                {errors.newPassword.message}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirm new password</Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              autoComplete="new-password"
+              {...register("confirmPassword", {
+                required: "Please confirm your password",
+              })}
+              className={errors.confirmPassword ? "border-red-500" : ""}
+            />
+            {errors.confirmPassword && (
+              <p className="text-red-500 text-sm">
+                {errors.confirmPassword.message}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-end">
+          <Button type="submit" disabled={isMutating} className="flex items-center">
+            {isMutating ? (
+              <>
+                <ReloadIcon className="h-4 w-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <SaveFloppyIcon className="h-4 w-4 mr-2" />
+                {hasPassword ? "Update password" : "Set password"}
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }

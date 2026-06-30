@@ -60,6 +60,10 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - DODO_PAYMENTS_API_KEY=${DODO_PAYMENTS_API_KEY}
       - JWT_SECRET=${JWT_SECRET}
+      # Server-side: used by /api/auth/google to verify Google ID tokens.
+      # (NEXT_PUBLIC_GOOGLE_CLIENT_ID is baked into the bundle at build time via
+      #  apps/denshees-frontend/.env.production — see deploy.yml.)
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - SMTP_USER=${SMTP_USER}
       - SMTP_PASS=${SMTP_PASS}
       - SUPPORT_NOTIFY_EMAILS=${SUPPORT_NOTIFY_EMAILS}

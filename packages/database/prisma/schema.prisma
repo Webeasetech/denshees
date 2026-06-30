@@ -24,7 +24,7 @@ model User {
   credits   Float?   @default(0)
   aiCredits Float?   @default(0) @map("ai_credits")
   isSetup   Boolean  @default(false) @map("issetup")
-  password  String
+  password  String?
   verified  Boolean  @default(false)
   created   DateTime @default(now())
   updated   DateTime @updatedAt

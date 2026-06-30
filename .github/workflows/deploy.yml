@@ -38,6 +38,7 @@ jobs:
             OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
             DODO_PAYMENTS_API_KEY=${{ secrets.DODO_PAYMENTS_API_KEY }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
             SMTP_USER=${{ secrets.SMTP_USER }}
             SMTP_PASS=${{ secrets.SMTP_PASS }}
             SUPPORT_NOTIFY_EMAILS=${{ secrets.SUPPORT_NOTIFY_EMAILS }}
@@ -54,6 +55,7 @@ jobs:
             OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
             DODO_PAYMENTS_API_KEY=${{ secrets.DODO_PAYMENTS_API_KEY }}
             TRIGGER_SECRET_KEY=${{ secrets.TRIGGER_SECRET_KEY }}
+            NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
             EOF
 
             # Write agents .env.production needed at build time

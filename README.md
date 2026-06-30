@@ -70,9 +70,38 @@ Then fill in the values:
 | `DODO_PAYMENTS_API_KEY` | Dodo Payments key |
 | `JWT_SECRET` | Secret for signing JWT tokens |
 | `DATABASE_URL` | PostgreSQL connection string |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Google OAuth client ID (browser) — see [Google Sign-In setup](#google-sign-in-setup) |
+| `GOOGLE_CLIENT_ID` | Same Google OAuth client ID (server-side token verification) |
 | `SMTP_USER` | SMTP email for sending mail |
 | `SMTP_PASS` | SMTP password / app password |
 | `SUPPORT_NOTIFY_EMAILS` | Comma-separated notification recipients |
+
+### Google Sign-In setup
+
+Denshees supports Google Sign-In on the login and signup pages. To enable it for
+your own deployment:
+
+1. In the [Google Cloud Console](https://console.cloud.google.com/apis/credentials),
+   create an **OAuth 2.0 Client ID** of type **Web application**.
+2. Under **Authorized JavaScript origins**, add every origin you serve the app from:
+   - `http://localhost:3000` (local development)
+   - `https://your-domain.com` (production)
+3. Copy the generated **Client ID** and set it as **both** of these in
+   `apps/denshees-frontend/.env`:
+   ```sh
+   NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+   GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+   ```
+   `NEXT_PUBLIC_GOOGLE_CLIENT_ID` is read by the browser button and is baked into
+   the build, so it must be present **before `pnpm build`** (in production it's
+   written to `apps/denshees-frontend/.env.production`). `GOOGLE_CLIENT_ID` is read
+   server-side to verify Google ID tokens. The same value is safe in both — an
+   OAuth *client ID* is public; no client secret is required for this flow.
+4. On the **OAuth consent screen**, add test users while in "Testing", or publish
+   the app to allow any Google account.
+
+> Accounts created via Google have **no password**. To also use email/password
+> login, a user sets a password from **Settings → Account** after signing in.
 
 ### 3. Set up the database
 

@@ -23,6 +23,18 @@ export async function POST(request) {
       );
     }
 
+    // Google-created accounts have no password — block email/password login
+    // until the user sets one in Settings (also avoids bcrypt.compare on null).
+    if (!user.password) {
+      return NextResponse.json(
+        {
+          message:
+            "This account uses Google sign-in. Set a password in Settings to enable email login.",
+        },
+        { status: 401 },
+      );
+    }
+
     const isValid = await bcrypt.compare(password, user.password);
 
     if (!isValid) {

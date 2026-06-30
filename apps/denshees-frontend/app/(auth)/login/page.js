@@ -1,13 +1,12 @@
 "use client";
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { EmailIcon } from "mage-icons-react/bulk";
-import { ArrowRightIcon } from "mage-icons-react/stroke";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import GoogleButton from "@/components/auth/google-button";
 import useAuthStore from "@/store/auth.store";
 
 export default function LoginPage() {
@@ -130,15 +129,10 @@ export default function LoginPage() {
 
           <div className="mt-12">
             <p className="text-sm text-gray-600">
-              Don&#39;t have an account yet?
+              New here? No separate sign-up — just{" "}
+              <span className="font-medium text-black">Continue with Google</span>{" "}
+              and your account is created automatically.
             </p>
-            <Link
-              href="/signup"
-              className="inline-flex items-center mt-2 text-black border-b-2 border-black hover:bg-gray-100 transition-colors"
-            >
-              Create an account
-              <ArrowRightIcon className="w-4 h-4 ml-1" />
-            </Link>
           </div>
         </div>
       </div>
@@ -147,13 +141,25 @@ export default function LoginPage() {
       <div className="flex-1 bg-gray-50 p-8 md:p-12 flex items-center justify-center">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
-            <h2 className="text-3xl font-bold mb-2">Welcome back</h2>
+            <h2 className="text-3xl font-bold mb-2">Welcome to Denshees</h2>
             <p className="text-gray-600 mb-8">
-              Sign in to your account to continue
+              Sign in or create your account
             </p>
           </div>
 
           <div className="space-y-4">
+            <GoogleButton />
+            <p className="text-center text-xs text-gray-500">
+              New here? Continuing with Google creates your account
+              automatically.
+            </p>
+
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-gray-300" />
+              <span className="text-sm text-gray-500">or</span>
+              <div className="h-px flex-1 bg-gray-300" />
+            </div>
+
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
                 <label
