@@ -143,7 +143,7 @@ export default function LoginPage() {
           <div className="text-center">
             <h2 className="text-3xl font-bold mb-2">Welcome to Denshees</h2>
             <p className="text-gray-600 mb-8">
-              Sign in or create your account in seconds
+              Sign in or create your account
             </p>
           </div>
 
