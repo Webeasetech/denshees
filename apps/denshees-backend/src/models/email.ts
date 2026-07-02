@@ -45,6 +45,7 @@ export interface CampaignRecord {
 export interface UserRecord {
   id: string;
   email: string;
+  name?: string;
   credits: number;
   timezone?: string;
 }

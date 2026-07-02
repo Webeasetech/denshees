@@ -333,8 +333,16 @@ export async function sendCampaignEmail(
     }
 
     // Set up mail options
+    // Prefer a "Display Name <email>" From when the account owner has a name set,
+    // so recipients see a human name instead of a bare address. Falls back to the
+    // raw address. Uses campaign.user (already joined) — same account owns the creds.
+    const senderName = email.campaign?.user?.name;
+    const fromAddress = senderName
+      ? `"${senderName}" <${credential.username}>`
+      : credential.username;
+
     const mailOptions = {
-      from: credential.username, // Sender is the chosen credential's username
+      from: fromAddress, // Display-name From when available, else bare address
       to: email.email.trim(), // Trim to remove any whitespace
       subject,
       html: processedBody,
@@ -388,7 +396,7 @@ export async function sendCampaignEmail(
 
     // Log the mail options for debugging (excluding sensitive content)
     log("INFO", `Sending email`, txId, {
-      from: credential.username,
+      from: fromAddress,
       to: maskedEmail,
       subject: mailOptions.subject,
       isThreaded: email.stage > 0 && {
