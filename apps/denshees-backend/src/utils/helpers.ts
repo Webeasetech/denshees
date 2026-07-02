@@ -48,8 +48,11 @@ export function normalizeEmailBody(html: string): string {
   return (
     html
       .replace(/&nbsp;/gi, " ")
-      // Block boundaries → line breaks. Closing tag = paragraph gap (one blank line).
-      .replace(/<\/(p|div)>/gi, "<br><br>")
+      // Block boundary = a single line break, matching how the editor renders a
+      // paragraph break. Intentional blank lines are authored as <br><br> INSIDE
+      // a paragraph and are preserved as-is — mapping </p> to <br><br> here would
+      // double them, inserting empty lines the author never added.
+      .replace(/<\/(p|div)>/gi, "<br>")
       .replace(/<(p|div)[^>]*>/gi, "")
       // Drop editor pretty-print newlines that follow a <br> (kept invisible in
       // HTML but they bloat the text/plain alt with blank lines).
