@@ -49,3 +49,6 @@ CLAUDE.md
 
 # Local-only notes (personal backlog, learning notes, etc.)
 *.local.md
+
+# Local-only throwaway scripts (manual probes, one-off tests — never deployed)
+*.local.ts
