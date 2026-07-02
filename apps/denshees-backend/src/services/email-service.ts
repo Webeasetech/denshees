@@ -5,7 +5,11 @@
 import { v4 as uuidv4 } from "uuid";
 import { prisma } from "./prisma.service.js";
 import { log } from "../utils/logger.js";
-import { isValidEmail, applyHoganPersonalization } from "../utils/helpers.js";
+import {
+  isValidEmail,
+  applyHoganPersonalization,
+  normalizeEmailBody,
+} from "../utils/helpers.js";
 import { getEmailTransporter } from "../utils/credential-service.js";
 import {
   fetchPitch,
@@ -284,10 +288,14 @@ export async function sendCampaignEmail(
     };
 
     log("INFO", `Applying personalization to email template`, txId);
-    const { subject, body } = applyHoganPersonalization(
+    const { subject, body: rawBody } = applyHoganPersonalization(
       pitch,
       personalizationData,
     );
+
+    // Flatten legacy <p>-block markup to clean <br> spacing so sent mail matches
+    // the hand-typed look, regardless of how the stored template was authored.
+    const body = normalizeEmailBody(rawBody);
 
     log("INFO", `Personalization applied successfully`, txId, {
       subjectLength: subject.length,

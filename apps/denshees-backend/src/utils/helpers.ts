@@ -31,6 +31,43 @@ export function isValidEmail(email: string | null | undefined): boolean {
 }
 
 /**
+ * Normalizes rich-editor HTML into clean, human-looking mail markup.
+ *
+ * Legacy templates (and jodit sessions that load them) store paragraphs as
+ * <p> blocks, whose ~1em margins render as oversized double-gaps that make mail
+ * look templated. This flattens block tags to <br> line breaks, decodes &nbsp;,
+ * collapses excess breaks, and strips inline styles — so both new and existing
+ * templates send with even, hand-typed spacing. Links (<a>) are preserved.
+ *
+ * @param html - Raw body HTML from the stored pitch.
+ * @returns Normalized body HTML.
+ */
+export function normalizeEmailBody(html: string): string {
+  if (!html) return "";
+
+  return (
+    html
+      .replace(/&nbsp;/gi, " ")
+      // Block boundaries → line breaks. Closing tag = paragraph gap (one blank line).
+      .replace(/<\/(p|div)>/gi, "<br><br>")
+      .replace(/<(p|div)[^>]*>/gi, "")
+      // Drop editor pretty-print newlines that follow a <br> (kept invisible in
+      // HTML but they bloat the text/plain alt with blank lines).
+      .replace(/(<br\s*\/?>)[ \t]*\n[ \t]*/gi, "$1")
+      // Drop whitespace/newlines sitting between consecutive <br> tags.
+      .replace(/(<br\s*\/?>)\s+(?=<br)/gi, "$1")
+      // Collapse 3+ consecutive breaks down to a single blank line.
+      .replace(/(<br\s*\/?>\s*){3,}/gi, "<br><br>")
+      // Trim leading/trailing breaks.
+      .replace(/^(\s*<br\s*\/?>\s*)+/i, "")
+      .replace(/(\s*<br\s*\/?>\s*)+$/i, "")
+      // Strip inline styles left over from pasted content.
+      .replace(/\s*style="[^"]*"/gi, "")
+      .trim()
+  );
+}
+
+/**
  * Applies Hogan.js personalization for email templates.
  * @param pitch - Pitch template with subject and message.
  * @param data - Personalization data.
