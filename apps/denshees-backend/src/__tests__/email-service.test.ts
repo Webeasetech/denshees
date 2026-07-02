@@ -20,6 +20,7 @@ vi.mock("../utils/helpers.js", () => ({
     subject: "Test Subject",
     body: "<p>Test body</p>",
   })),
+  normalizeEmailBody: vi.fn((html: string) => html),
 }));
 
 vi.mock("../utils/credential-service.js", () => ({

@@ -5,7 +5,11 @@
 import { v4 as uuidv4 } from "uuid";
 import { prisma } from "./prisma.service.js";
 import { log } from "../utils/logger.js";
-import { isValidEmail, applyHoganPersonalization } from "../utils/helpers.js";
+import {
+  isValidEmail,
+  applyHoganPersonalization,
+  normalizeEmailBody,
+} from "../utils/helpers.js";
 import { getEmailTransporter } from "../utils/credential-service.js";
 import {
   fetchPitch,
@@ -284,10 +288,14 @@ export async function sendCampaignEmail(
     };
 
     log("INFO", `Applying personalization to email template`, txId);
-    const { subject, body } = applyHoganPersonalization(
+    const { subject, body: rawBody } = applyHoganPersonalization(
       pitch,
       personalizationData,
     );
+
+    // Flatten legacy <p>-block markup to clean <br> spacing so sent mail matches
+    // the hand-typed look, regardless of how the stored template was authored.
+    const body = normalizeEmailBody(rawBody);
 
     log("INFO", `Personalization applied successfully`, txId, {
       subjectLength: subject.length,
@@ -333,8 +341,16 @@ export async function sendCampaignEmail(
     }
 
     // Set up mail options
+    // Prefer a "Display Name <email>" From when the account owner has a name set,
+    // so recipients see a human name instead of a bare address. Falls back to the
+    // raw address. Uses campaign.user (already joined) — same account owns the creds.
+    const senderName = email.campaign?.user?.name;
+    const fromAddress = senderName
+      ? `"${senderName}" <${credential.username}>`
+      : credential.username;
+
     const mailOptions = {
-      from: credential.username, // Sender is the chosen credential's username
+      from: fromAddress, // Display-name From when available, else bare address
       to: email.email.trim(), // Trim to remove any whitespace
       subject,
       html: processedBody,
@@ -388,7 +404,7 @@ export async function sendCampaignEmail(
 
     // Log the mail options for debugging (excluding sensitive content)
     log("INFO", `Sending email`, txId, {
-      from: credential.username,
+      from: fromAddress,
       to: maskedEmail,
       subject: mailOptions.subject,
       isThreaded: email.stage > 0 && {
