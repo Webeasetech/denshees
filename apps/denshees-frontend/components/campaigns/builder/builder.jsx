@@ -17,6 +17,16 @@ import { AnimatePresence, motion } from "framer-motion";
 import UpdateTemplate from "@/components/campaigns/builder/update-template";
 import EmailStageNode from "@/components/campaigns/builder/email-stage-node";
 import OutcomeNode from "@/components/campaigns/builder/outcome-node";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Register custom node types
 const nodeTypes = {
@@ -39,6 +49,7 @@ const Builder = ({ campaign }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [showEditor, setShowEditor] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState(null);
 
   // Calculate stats from contacts data
   const stats = useMemo(() => {
@@ -108,7 +119,7 @@ const Builder = ({ campaign }) => {
         totalContacts: stats.totalContacts,
         // Only the last stage, and never the first email (index 0), is deletable.
         isLast: index === stages.length - 1 && index > 0,
-        onDelete: handleDeleteStage,
+        onDelete: requestDeleteStage,
       },
       draggable: false,
     }));
@@ -218,7 +229,7 @@ const Builder = ({ campaign }) => {
 
     setNodes(flowNodes);
     setEdges(flowEdges);
-    // handleStageClick/handleDeleteStage are intentionally omitted (declared
+    // handleStageClick/requestDeleteStage are intentionally omitted (declared
     // below); the effect re-runs on data/selectedStage/stats and closes over the
     // latest handlers, matching the existing pattern.
   }, [isLoading, data, selectedStage, stats]);
@@ -247,25 +258,30 @@ const Builder = ({ campaign }) => {
     }
   }, [campaign, mutatePitches]);
 
-  const handleDeleteStage = useCallback(
-    async (stage) => {
-      setMutating(true);
-      try {
-        await remove(`/api/pitches/delete?pitch=${stage.id}`, { arg: {} });
-        if (selectedStage?.id === stage.id) setShowEditor(false);
-        await mutatePitches();
-        toast.success("Follow-up removed");
-      } catch (error) {
-        // Surface the guard message (e.g. leads still at this stage).
-        toast.error(
-          error?.response?.data?.message || "Could not remove follow-up",
-        );
-      } finally {
-        setMutating(false);
-      }
-    },
-    [mutatePitches, selectedStage],
-  );
+  // Node "×" opens a confirm dialog rather than deleting immediately.
+  const requestDeleteStage = useCallback((stage) => {
+    setPendingDelete(stage);
+  }, []);
+
+  const confirmDeleteStage = useCallback(async () => {
+    const stage = pendingDelete;
+    if (!stage) return;
+    setPendingDelete(null);
+    setMutating(true);
+    try {
+      await remove(`/api/pitches/delete?pitch=${stage.id}`, { arg: {} });
+      if (selectedStage?.id === stage.id) setShowEditor(false);
+      await mutatePitches();
+      toast.success("Follow-up removed");
+    } catch (error) {
+      // Surface the guard message (e.g. leads still at this stage).
+      toast.error(
+        error?.response?.data?.message || "Could not remove follow-up",
+      );
+    } finally {
+      setMutating(false);
+    }
+  }, [pendingDelete, mutatePitches, selectedStage]);
 
   if (isLoading || contactsLoading) {
     return (
@@ -346,8 +362,53 @@ const Builder = ({ campaign }) => {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Loading overlay while a stage is added/removed and the flow reloads */}
+          <AnimatePresence>
+            {mutating && (
+              <motion.div
+                className="absolute inset-0 z-20 flex items-center justify-center bg-white/70 backdrop-blur-[1px]"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                <div className="flex items-center gap-3 bg-white px-4 py-3 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                  <span className="text-sm font-medium">Updating flow…</span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
+
+      <AlertDialog
+        open={!!pendingDelete}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this follow-up?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete
+                ? `Stage ${(pendingDelete.stage ?? 0) + 1} and its template will be permanently deleted. This can't be undone.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteStage}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
