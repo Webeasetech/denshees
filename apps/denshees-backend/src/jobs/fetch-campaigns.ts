@@ -221,13 +221,18 @@ function daysPassed(isoDateString: string) {
     throw new Error(`Invalid date format: ${isoDateString}`);
   }
 
-  // Normalize dates to midnight for an accurate day count
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  pastDate.setHours(0, 0, 0, 0);
-
+  // Count full elapsed 24h periods from the actual send instant.
+  //
+  // We deliberately do NOT normalize to midnight. The old code did
+  // `setHours(0,0,0,0)` on both dates, which (a) counted calendar-date
+  // crossings rather than elapsed time — so a follow-up could fire up to a
+  // day early when the send happened late in the day — and (b) used the
+  // server's LOCAL timezone to pick midnight, while `sentAt` is stored in
+  // UTC, drifting the day boundary by the server's offset (e.g. a Europe
+  // Hetzner box firing follow-ups a day early). Working directly on the two
+  // absolute instants is timezone-independent and never fires early.
   const msPerDay = 1000 * 60 * 60 * 24;
-  return Math.floor((today.getTime() - pastDate.getTime()) / msPerDay);
+  return Math.floor((Date.now() - pastDate.getTime()) / msPerDay);
 }
 
 export { processCampaignJob };

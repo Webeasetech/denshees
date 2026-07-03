@@ -290,6 +290,46 @@ describe("processCampaignJob", () => {
     vi.useRealTimers();
   });
 
+  it("does NOT fire a follow-up early — counts elapsed 24h periods, not calendar days", async () => {
+    vi.useFakeTimers();
+    // Now: Mar 25 01:00 UTC (MIDNIGHT window, hour 1).
+    vi.setSystemTime(new Date("2026-03-25T01:00:00Z"));
+
+    vi.mocked(prisma.campaign.findMany).mockResolvedValue([
+      makeCampaign({
+        emailDeliveryPeriod: "MIDNIGHT",
+        activeDays: [
+          "monday",
+          "tuesday",
+          "wednesday",
+          "thursday",
+          "friday",
+          "saturday",
+          "sunday",
+        ],
+        user: { id: "u-1", timezone: "UTC", credits: 10, email: "o@t.com" },
+      }),
+    ] as any);
+
+    // Sent Mar 23 23:00 UTC → only ~26h elapsed. With delay=2 the follow-up must
+    // wait a full 48h. The old midnight-normalized code counted 2 *calendar*
+    // days (Mar 23 → Mar 25) and would have sent early; elapsed counting blocks.
+    vi.mocked(prisma.campaignEmail.findMany).mockResolvedValue([
+      makeCampaignEmail({
+        id: "ce-early",
+        stage: 1,
+        sentAt: new Date("2026-03-23T23:00:00Z"),
+        campaign: { daysInterval: 2 },
+      }),
+    ] as any);
+
+    await processCampaignJob();
+
+    expect(enqueueEmailBatches).not.toHaveBeenCalled();
+
+    vi.useRealTimers();
+  });
+
   it("handles errors gracefully and returns empty array", async () => {
     vi.mocked(prisma.campaign.findMany).mockRejectedValue(
       new Error("DB connection lost"),
