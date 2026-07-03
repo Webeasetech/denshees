@@ -132,10 +132,6 @@ const UpdateTemplate = ({ message, stage, campaign, subject }) => {
               handleSaveTemplate();
             }}
           />
-          <p className="text-xs text-gray-500 mt-1">
-            Sent this many days after the previous email (respecting your send
-            window).
-          </p>
         </div>
       )}
 
