@@ -10,11 +10,23 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import useSWR from "swr";
+import { toast } from "sonner";
 import fetcher from "@/lib/fetcher";
+import { post, remove } from "@/lib/apis";
 import { AnimatePresence, motion } from "framer-motion";
 import UpdateTemplate from "@/components/campaigns/builder/update-template";
 import EmailStageNode from "@/components/campaigns/builder/email-stage-node";
 import OutcomeNode from "@/components/campaigns/builder/outcome-node";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Register custom node types
 const nodeTypes = {
@@ -23,10 +35,9 @@ const nodeTypes = {
 };
 
 const Builder = ({ campaign }) => {
-  const { isLoading, data } = useSWR(
-    `/api/pitches?campaign=${campaign}`,
-    fetcher
-  );
+  const pitchesKey = `/api/pitches?campaign=${campaign}`;
+  const { isLoading, data, mutate: mutatePitches } = useSWR(pitchesKey, fetcher);
+  const [mutating, setMutating] = useState(false);
   
   // Fetch contacts data for analytics
   const { data: contactsData, isLoading: contactsLoading } = useSWR(
@@ -38,6 +49,7 @@ const Builder = ({ campaign }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [showEditor, setShowEditor] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState(null);
 
   // Calculate stats from contacts data
   const stats = useMemo(() => {
@@ -105,6 +117,9 @@ const Builder = ({ campaign }) => {
         contactCount: stats.contactsPerStage[index + 1] || 0,
         replyCount: stats.repliesPerStage[index + 1] || 0,
         totalContacts: stats.totalContacts,
+        // Only the last stage, and never the first email (index 0), is deletable.
+        isLast: index === stages.length - 1 && index > 0,
+        onDelete: requestDeleteStage,
       },
       draggable: false,
     }));
@@ -164,13 +179,17 @@ const Builder = ({ campaign }) => {
       draggable: false,
     });
 
-    // Create edges connecting the stage nodes
+    // Create edges connecting the stage nodes. The label shows the per-stage
+    // delay of the NEXT stage (days to wait before that follow-up is sent).
     const flowEdges = stages.slice(0, -1).map((_, index) => ({
       id: `edge-${index}`,
       source: `stage-${stages[index].id}`,
       target: `stage-${stages[index + 1].id}`,
       animated: true,
       style: { stroke: "#000000", strokeWidth: 1 },
+      label: `wait ${stages[index + 1].delayDays ?? 1}d`,
+      labelStyle: { fontSize: 10, fontWeight: 600 },
+      labelBgStyle: { fill: "#fff", fillOpacity: 0.9 },
     }));
 
     // Add edges from last stage to outcome nodes
@@ -210,6 +229,9 @@ const Builder = ({ campaign }) => {
 
     setNodes(flowNodes);
     setEdges(flowEdges);
+    // handleStageClick/requestDeleteStage are intentionally omitted (declared
+    // below); the effect re-runs on data/selectedStage/stats and closes over the
+    // latest handlers, matching the existing pattern.
   }, [isLoading, data, selectedStage, stats]);
 
   const handleStageClick = useCallback((stage) => {
@@ -220,6 +242,46 @@ const Builder = ({ campaign }) => {
   const handleCloseEditor = useCallback(() => {
     setShowEditor(false);
   }, []);
+
+  const handleAddFollowUp = useCallback(async () => {
+    setMutating(true);
+    try {
+      await post(`/api/pitches/create?campaign=${campaign}`, { arg: {} });
+      await mutatePitches();
+      toast.success("Follow-up added");
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message || "Could not add follow-up",
+      );
+    } finally {
+      setMutating(false);
+    }
+  }, [campaign, mutatePitches]);
+
+  // Node "×" opens a confirm dialog rather than deleting immediately.
+  const requestDeleteStage = useCallback((stage) => {
+    setPendingDelete(stage);
+  }, []);
+
+  const confirmDeleteStage = useCallback(async () => {
+    const stage = pendingDelete;
+    if (!stage) return;
+    setPendingDelete(null);
+    setMutating(true);
+    try {
+      await remove(`/api/pitches/delete?pitch=${stage.id}`, { arg: {} });
+      if (selectedStage?.id === stage.id) setShowEditor(false);
+      await mutatePitches();
+      toast.success("Follow-up removed");
+    } catch (error) {
+      // Surface the guard message (e.g. leads still at this stage).
+      toast.error(
+        error?.response?.data?.message || "Could not remove follow-up",
+      );
+    } finally {
+      setMutating(false);
+    }
+  }, [pendingDelete, mutatePitches, selectedStage]);
 
   if (isLoading || contactsLoading) {
     return (
@@ -255,11 +317,19 @@ const Builder = ({ campaign }) => {
             >
               <h3 className="text-sm font-medium">Email Campaign Flow</h3>
               <p className="text-xs text-gray-600">
-                Click on a stage to edit its template
+                Click a stage to edit its template &amp; delay
               </p>
               <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-600">
                 <p>Total Leads: <span className="font-medium text-black">{stats.totalContacts}</span></p>
               </div>
+              <button
+                type="button"
+                onClick={handleAddFollowUp}
+                disabled={mutating}
+                className="mt-2 w-full px-2 py-1 text-xs font-medium bg-white text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                + Add follow-up
+              </button>
             </Panel>
           </ReactFlow>
 
@@ -292,8 +362,53 @@ const Builder = ({ campaign }) => {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Loading overlay while a stage is added/removed and the flow reloads */}
+          <AnimatePresence>
+            {mutating && (
+              <motion.div
+                className="absolute inset-0 z-20 flex items-center justify-center bg-white/70 backdrop-blur-[1px]"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                <div className="flex items-center gap-3 bg-white px-4 py-3 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                  <span className="text-sm font-medium">Updating flow…</span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
+
+      <AlertDialog
+        open={!!pendingDelete}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this follow-up?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete
+                ? `Stage ${(pendingDelete.stage ?? 0) + 1} and its template will be permanently deleted. This can't be undone.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteStage}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

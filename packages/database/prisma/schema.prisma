@@ -199,6 +199,7 @@ model PitchEmail {
   stage          Int?
   message        String?   @db.Text
   dynamicSubject String?   @map("dynamic_subject")
+  delayDays      Int?      @default(1) @map("delay_days")
   created        DateTime  @default(now())
   updated        DateTime  @updatedAt
 
