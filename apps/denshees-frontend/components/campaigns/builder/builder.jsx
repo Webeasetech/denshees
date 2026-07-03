@@ -10,7 +10,9 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import useSWR from "swr";
+import { toast } from "sonner";
 import fetcher from "@/lib/fetcher";
+import { post, remove } from "@/lib/apis";
 import { AnimatePresence, motion } from "framer-motion";
 import UpdateTemplate from "@/components/campaigns/builder/update-template";
 import EmailStageNode from "@/components/campaigns/builder/email-stage-node";
@@ -23,10 +25,9 @@ const nodeTypes = {
 };
 
 const Builder = ({ campaign }) => {
-  const { isLoading, data } = useSWR(
-    `/api/pitches?campaign=${campaign}`,
-    fetcher
-  );
+  const pitchesKey = `/api/pitches?campaign=${campaign}`;
+  const { isLoading, data, mutate: mutatePitches } = useSWR(pitchesKey, fetcher);
+  const [mutating, setMutating] = useState(false);
   
   // Fetch contacts data for analytics
   const { data: contactsData, isLoading: contactsLoading } = useSWR(
@@ -105,6 +106,9 @@ const Builder = ({ campaign }) => {
         contactCount: stats.contactsPerStage[index + 1] || 0,
         replyCount: stats.repliesPerStage[index + 1] || 0,
         totalContacts: stats.totalContacts,
+        // Only the last stage, and never the first email (index 0), is deletable.
+        isLast: index === stages.length - 1 && index > 0,
+        onDelete: handleDeleteStage,
       },
       draggable: false,
     }));
@@ -164,13 +168,17 @@ const Builder = ({ campaign }) => {
       draggable: false,
     });
 
-    // Create edges connecting the stage nodes
+    // Create edges connecting the stage nodes. The label shows the per-stage
+    // delay of the NEXT stage (days to wait before that follow-up is sent).
     const flowEdges = stages.slice(0, -1).map((_, index) => ({
       id: `edge-${index}`,
       source: `stage-${stages[index].id}`,
       target: `stage-${stages[index + 1].id}`,
       animated: true,
       style: { stroke: "#000000", strokeWidth: 1 },
+      label: `wait ${stages[index + 1].delayDays ?? 1}d`,
+      labelStyle: { fontSize: 10, fontWeight: 600 },
+      labelBgStyle: { fill: "#fff", fillOpacity: 0.9 },
     }));
 
     // Add edges from last stage to outcome nodes
@@ -210,6 +218,9 @@ const Builder = ({ campaign }) => {
 
     setNodes(flowNodes);
     setEdges(flowEdges);
+    // handleStageClick/handleDeleteStage are intentionally omitted (declared
+    // below); the effect re-runs on data/selectedStage/stats and closes over the
+    // latest handlers, matching the existing pattern.
   }, [isLoading, data, selectedStage, stats]);
 
   const handleStageClick = useCallback((stage) => {
@@ -220,6 +231,41 @@ const Builder = ({ campaign }) => {
   const handleCloseEditor = useCallback(() => {
     setShowEditor(false);
   }, []);
+
+  const handleAddFollowUp = useCallback(async () => {
+    setMutating(true);
+    try {
+      await post(`/api/pitches/create?campaign=${campaign}`, { arg: {} });
+      await mutatePitches();
+      toast.success("Follow-up added");
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message || "Could not add follow-up",
+      );
+    } finally {
+      setMutating(false);
+    }
+  }, [campaign, mutatePitches]);
+
+  const handleDeleteStage = useCallback(
+    async (stage) => {
+      setMutating(true);
+      try {
+        await remove(`/api/pitches/delete?pitch=${stage.id}`, { arg: {} });
+        if (selectedStage?.id === stage.id) setShowEditor(false);
+        await mutatePitches();
+        toast.success("Follow-up removed");
+      } catch (error) {
+        // Surface the guard message (e.g. leads still at this stage).
+        toast.error(
+          error?.response?.data?.message || "Could not remove follow-up",
+        );
+      } finally {
+        setMutating(false);
+      }
+    },
+    [mutatePitches, selectedStage],
+  );
 
   if (isLoading || contactsLoading) {
     return (
@@ -255,11 +301,19 @@ const Builder = ({ campaign }) => {
             >
               <h3 className="text-sm font-medium">Email Campaign Flow</h3>
               <p className="text-xs text-gray-600">
-                Click on a stage to edit its template
+                Click a stage to edit its template &amp; delay
               </p>
               <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-600">
                 <p>Total Leads: <span className="font-medium text-black">{stats.totalContacts}</span></p>
               </div>
+              <button
+                type="button"
+                onClick={handleAddFollowUp}
+                disabled={mutating}
+                className="mt-2 w-full px-2 py-1 text-xs font-medium bg-white text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                + Add follow-up
+              </button>
             </Panel>
           </ReactFlow>
 

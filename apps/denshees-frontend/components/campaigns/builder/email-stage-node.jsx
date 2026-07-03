@@ -17,6 +17,8 @@ const EmailStageNode = ({ data }) => {
     contactCount,
     replyCount,
     totalContacts,
+    isLast,
+    onDelete,
   } = data;
 
   // Calculate percentages
@@ -27,7 +29,7 @@ const EmailStageNode = ({ data }) => {
 
   return (
     <div
-      className={`px-4 py-3 rounded-none border-2 ${
+      className={`relative px-4 py-3 rounded-none border-2 ${
         isSelected
           ? "bg-black text-white border-black"
           : "bg-white text-black border-black"
@@ -39,6 +41,21 @@ const EmailStageNode = ({ data }) => {
         position={Position.Top}
         className="!bg-black !border-2 !border-white w-3 h-3"
       />
+
+      {/* Delete affordance — only on the last follow-up (never the first email) */}
+      {isLast && onDelete && (
+        <button
+          type="button"
+          title="Remove this follow-up"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(stage);
+          }}
+          className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-white text-black border-2 border-black rounded-none text-xs font-bold leading-none hover:bg-red-500 hover:text-white transition-colors"
+        >
+          ×
+        </button>
+      )}
 
       <div className="flex items-center gap-2">
         <EmailIcon className="w-[18px] h-[18px]" />

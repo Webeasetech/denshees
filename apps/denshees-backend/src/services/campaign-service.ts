@@ -141,7 +141,9 @@ export async function updateEmailStatus(email: EmailRecord): Promise<void> {
 
     const nextStage = email.stage + 1;
     const maxStage = email.campaign?.maxStageCount || 1;
-    const nextStatus = email.stage === maxStage - 1 ? "COMPLETED" : "RUNNING";
+    // >= (not ===) so a lead already at or past the last stage — e.g. after the
+    // follow-up count was reduced — completes instead of looping into FAILED.
+    const nextStatus = email.stage >= maxStage - 1 ? "COMPLETED" : "RUNNING";
 
     log("INFO", `Updating email status`, txId, {
       emailId: email.id,

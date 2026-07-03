@@ -256,6 +256,40 @@ describe("processCampaignJob", () => {
     vi.useRealTimers();
   });
 
+  it("uses the per-stage pitch delay over the campaign-wide daysInterval", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-25T09:00:00Z")); // Wednesday 9am UTC
+
+    vi.mocked(prisma.campaign.findMany).mockResolvedValue([
+      makeCampaign({
+        emailDeliveryPeriod: "MORNING",
+        activeDays: ["wednesday"],
+        user: { id: "u-1", timezone: "UTC", credits: 10, email: "o@t.com" },
+      }),
+    ] as any);
+
+    // Global daysInterval=1 would allow a send after 1 day, but the stage-1
+    // pitch's delayDays=5 must win → NOT sent yet (only 1 day passed).
+    const yesterday = new Date("2026-03-24T09:00:00Z");
+    vi.mocked(prisma.campaignEmail.findMany).mockResolvedValue([
+      makeCampaignEmail({
+        id: "ce-perstage",
+        stage: 1,
+        sentAt: yesterday,
+        campaign: {
+          daysInterval: 1,
+          pitches: [{ stage: 1, delayDays: 5 }],
+        },
+      }),
+    ] as any);
+
+    const result = await processCampaignJob();
+
+    expect(enqueueEmailBatches).not.toHaveBeenCalled();
+
+    vi.useRealTimers();
+  });
+
   it("handles errors gracefully and returns empty array", async () => {
     vi.mocked(prisma.campaign.findMany).mockRejectedValue(
       new Error("DB connection lost"),

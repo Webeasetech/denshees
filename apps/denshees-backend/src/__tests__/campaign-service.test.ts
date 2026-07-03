@@ -194,6 +194,26 @@ describe("updateEmailStatus", () => {
     });
   });
 
+  it("sets COMPLETED when a lead is past the cap (e.g. follow-up count reduced)", async () => {
+    vi.mocked(prisma.user.update).mockResolvedValue({} as any);
+    vi.mocked(prisma.campaignEmail.update).mockResolvedValue({} as any);
+
+    // Lead is at stage 3 but the campaign was shrunk to maxStageCount=3
+    // (last stage index 2). The >= check must complete it, not loop it.
+    const email = makeEmail({ stage: 3, campaign: { id: "c-1", maxStageCount: 3 } });
+
+    await updateEmailStatus(email);
+
+    expect(prisma.campaignEmail.update).toHaveBeenCalledWith({
+      where: { id: "email-1" },
+      data: {
+        status: "COMPLETED",
+        stage: 4,
+        sentAt: expect.any(Date),
+      },
+    });
+  });
+
   it("skips credit decrement when no user on campaign", async () => {
     vi.mocked(prisma.campaignEmail.update).mockResolvedValue({} as any);
 

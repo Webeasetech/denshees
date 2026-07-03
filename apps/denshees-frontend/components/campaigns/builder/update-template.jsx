@@ -20,7 +20,11 @@ const UpdateTemplate = ({ message, stage, campaign, subject }) => {
 
   const [text, updateText] = useState(message);
   const [subjectValue, updateSubjectValue] = useState(subject);
+  const [delayValue, updateDelayValue] = useState(stage.delayDays ?? 1);
   const [loading, setLoading] = useState(false);
+
+  // The first email (stage 0) is sent immediately — no pre-send delay applies.
+  const isFollowUp = (stage.stage ?? 0) > 0;
 
   const { trigger } = useSWRMutation(
     `/api/pitches/update?pitch=${stage.id}`,
@@ -39,12 +43,14 @@ const UpdateTemplate = ({ message, stage, campaign, subject }) => {
   useEffect(() => {
     updateText(message);
     updateSubjectValue(subject);
+    updateDelayValue(stage.delayDays ?? 1);
   }, [stage, message, subject]);
 
   const handleSaveTemplate = () => {
     trigger({
       message: text,
       subject: subjectValue,
+      delayDays: delayValue,
     });
   };
 
@@ -100,6 +106,38 @@ const UpdateTemplate = ({ message, stage, campaign, subject }) => {
           onBlur={handleSaveTemplate}
         />
       </div>
+
+      {isFollowUp && (
+        <div className="w-full">
+          <label htmlFor="delay" className="block text-sm font-medium mb-1">
+            Delay (days to wait before this email)
+          </label>
+          <Input
+            id="delay"
+            type="number"
+            min={0}
+            value={delayValue}
+            onChange={(event) =>
+              updateDelayValue(
+                event.target.value === "" ? "" : Number(event.target.value),
+              )
+            }
+            placeholder="Days"
+            className="w-full max-w-[160px] border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+            onBlur={() => {
+              // Guard against an empty/negative value on blur.
+              if (delayValue === "" || Number.isNaN(Number(delayValue))) {
+                updateDelayValue(1);
+              }
+              handleSaveTemplate();
+            }}
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Sent this many days after the previous email (respecting your send
+            window).
+          </p>
+        </div>
+      )}
 
       <div className="w-full">
         <label htmlFor="email-body" className="block text-sm font-medium mb-1">

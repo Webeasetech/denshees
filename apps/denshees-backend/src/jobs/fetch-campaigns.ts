@@ -47,20 +47,25 @@ async function processCampaignJob() {
         status: { in: ["PENDING", "RUNNING"] },
         NOT: [{ status: "REPLIED" }, { status: "BOUNCED" }],
       },
-      include: { campaign: true },
+      include: { campaign: { include: { pitches: true } } },
       orderBy: { stage: "asc" },
     });
 
     // Filter emails based on the send delay (if any)
-    // Stage 0 (fresh leads) should always be sent immediately, regardless of sent_at
-    const validEmails = campaignEmails.filter(
-      (email: any) =>
-        email.stage === 0 ||
-        shouldSendToday(
-          email.sentAt?.toISOString() ?? null,
-          email.campaign?.daysInterval ?? 0,
-        ),
-    );
+    // Stage 0 (fresh leads) should always be sent immediately, regardless of sent_at.
+    // For follow-ups, use the per-stage delay from the matching pitch, falling back
+    // to the campaign-wide daysInterval when a pitch has no explicit delay.
+    const validEmails = campaignEmails.filter((email: any) => {
+      if (email.stage === 0) return true;
+
+      const stagePitch = email.campaign?.pitches?.find(
+        (p: any) => p.stage === email.stage,
+      );
+      const delay =
+        stagePitch?.delayDays ?? email.campaign?.daysInterval ?? 0;
+
+      return shouldSendToday(email.sentAt?.toISOString() ?? null, delay);
+    });
 
     let emailIds = validEmails.map((email: any) => email.id);
     if (emailIds.length === 0) {
