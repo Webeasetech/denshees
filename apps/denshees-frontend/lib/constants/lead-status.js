@@ -25,6 +25,14 @@ export const LEAD_STATUS_VALUES = LEAD_STATUSES.map((s) => s.value);
 export const DEFAULT_LEAD_STATUSES = ["PENDING", "RUNNING", "REPLIED"];
 
 /**
+ * Statuses a lead can still receive email in. Narrower than
+ * `DEFAULT_LEAD_STATUSES`: a REPLIED lead is a live conversation, so the table
+ * shows it by default, but the campaign has stopped sending to it — so it does
+ * not count towards the leads still being worked.
+ */
+export const ACTIVE_LEAD_STATUSES = ["PENDING", "RUNNING"];
+
+/**
  * Parses a comma-separated `statuses` query param into known values.
  * Returns null when nothing usable was passed, meaning "do not filter".
  *

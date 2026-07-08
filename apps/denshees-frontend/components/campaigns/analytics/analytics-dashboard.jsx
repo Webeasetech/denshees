@@ -14,6 +14,7 @@ import {
   MessageSquareIcon,
 } from "mage-icons-react/bulk";
 import PieChart from "@/components/campaigns/analytics/pie-chart";
+import { ACTIVE_LEAD_STATUSES } from "@/lib/constants/lead-status";
 import { CampaignActivities } from "./recent-activities";
 
 const AnalyticsDashboard = ({ campaignId, campaign }) => {
@@ -55,8 +56,8 @@ const AnalyticsDashboard = ({ campaignId, campaign }) => {
   // Calculate stats from data
   const contacts = contactsData || [];
   const totalContacts = contacts.length;
-  const activeContacts = contacts.filter(
-    (c) => c.status === "PENDING" || c.status === "RUNNING",
+  const activeContacts = contacts.filter((c) =>
+    ACTIVE_LEAD_STATUSES.includes(c.status),
   ).length;
   const verifiedContacts = contacts.filter(
     (c) => c.verified === "VERIFIED",
