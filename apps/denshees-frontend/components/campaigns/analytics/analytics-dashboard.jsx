@@ -14,10 +14,10 @@ import {
   MessageSquareIcon,
 } from "mage-icons-react/bulk";
 import PieChart from "@/components/campaigns/analytics/pie-chart";
+import { ACTIVE_LEAD_STATUSES } from "@/lib/constants/lead-status";
 import { CampaignActivities } from "./recent-activities";
 
 const AnalyticsDashboard = ({ campaignId, campaign }) => {
-
   // Fetch campaign contacts
   const { data: contactsData, isLoading: contactsLoading } = useSWR(
     campaignId ? `/api/contacts?campaign=${campaignId}` : null,
@@ -56,6 +56,9 @@ const AnalyticsDashboard = ({ campaignId, campaign }) => {
   // Calculate stats from data
   const contacts = contactsData || [];
   const totalContacts = contacts.length;
+  const activeContacts = contacts.filter((c) =>
+    ACTIVE_LEAD_STATUSES.includes(c.status),
+  ).length;
   const verifiedContacts = contacts.filter(
     (c) => c.verified === "VERIFIED",
   ).length;
@@ -76,8 +79,13 @@ const AnalyticsDashboard = ({ campaignId, campaign }) => {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
-          title="Total Leads"
-          value={totalContacts}
+          title="Active Leads"
+          value={
+            <>
+              {activeContacts}
+              <span className="text-gray-400"> / {totalContacts}</span>
+            </>
+          }
           icon={<EmailIcon className="w-6 h-6" />}
         />
         <StatCard
