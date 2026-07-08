@@ -4,6 +4,7 @@ import { DownloadIcon } from "mage-icons-react/stroke";
 import useSWRMutation from "swr/mutation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { DateTime } from "luxon";
 import { get } from "@/lib/apis";
 
 function downloadCSV(leads, campaignId) {
@@ -21,7 +22,9 @@ function downloadCSV(leads, campaignId) {
     lead.status,
     lead.stage || 0,
     lead.opened ? "Yes" : "No",
-    lead.sent_at || "",
+    lead.sentAt
+      ? DateTime.fromISO(lead.sentAt).toFormat("dd LLL yyyy, h:mm a")
+      : "",
   ]);
   const csv = [headers, ...rows]
     .map((row) =>

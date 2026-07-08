@@ -163,7 +163,6 @@ export default function CampaignLeadsPage() {
 
   // Format data for the table
   const formattedData = useMemo(() => {
-    console.log({ leads });
     return leads.map((lead) => ({
       id: lead.id,
       name: lead.name,
@@ -172,12 +171,7 @@ export default function CampaignLeadsPage() {
       stage: lead.stage || 0,
       opened: lead.opened ? "Yes" : "No",
       sent_from: lead.expand?.cred?.username || "-",
-      sent_at:
-        lead.status === "PENDING"
-          ? "-"
-          : lead.sent_at
-            ? DateTime.fromJSDate(new Date(lead.sent_at)).toRelative()
-            : "Not sent",
+      sent_at: lead.sentAt || null,
       actions: {
         id: lead.id,
         name: lead.name,
@@ -298,6 +292,17 @@ export default function CampaignLeadsPage() {
         header: "Last Sent at",
         accessorKey: "sent_at",
         id: "sent_at",
+        cell: ({ row }) => {
+          const sentAt = row.getValue("sent_at");
+          if (!sentAt) return <span className="text-gray-400">Not sent</span>;
+          const dt = DateTime.fromISO(sentAt);
+          if (!dt.isValid) return <span className="text-gray-400">-</span>;
+          return (
+            <span className="whitespace-nowrap text-sm" title={dt.toRelative()}>
+              {dt.toFormat("dd LLL yyyy, h:mm a")}
+            </span>
+          );
+        },
       },
       {
         header: "Actions",
