@@ -5,7 +5,6 @@ import { useParams } from "next/navigation";
 import {
   UserPlusIcon,
   FileUploadIcon,
-  FilterIcon,
   SearchIcon,
 } from "mage-icons-react/bulk";
 import { ArrowsAllDirectionIcon } from "mage-icons-react/stroke";
@@ -13,19 +12,6 @@ import useSWR from "swr";
 import useSWRMutation from "swr/mutation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import useCampaignStore from "@/store/campaign.store";
 import StatusChip from "@/components/ui/status-chip";
@@ -35,10 +21,19 @@ import ImportLeadsDialog from "@/components/campaigns/import-leads-dialog";
 import AddLeadDialog from "@/components/campaigns/add-lead-dialog";
 import EditLeadDialog from "@/components/campaigns/edit-lead-dialog";
 import ExportLeadsButton from "@/components/campaigns/export-leads-button";
+import LeadsFilters from "@/components/campaigns/leads-filters";
 import LeadsGrowthChart from "@/components/campaigns/analytics/leads-growth-chart";
 import fetcher from "@/lib/fetcher";
 import { remove } from "@/lib/apis";
+import { buildLeadsQuery } from "@/lib/leads-query";
+import { DEFAULT_LEAD_STATUSES } from "@/lib/constants/lead-status";
 import { DateTime } from "luxon";
+
+const DEFAULT_FILTERS = {
+  sentAtSort: "NEWEST_FIRST",
+  stageFilter: "ALL",
+  statuses: DEFAULT_LEAD_STATUSES,
+};
 
 export default function CampaignLeadsPage() {
   const params = useParams();
@@ -61,10 +56,7 @@ export default function CampaignLeadsPage() {
   const [addLeadDialogOpen, setAddLeadDialogOpen] = useState(false);
   const [editLeadDialogOpen, setEditLeadDialogOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
-  const [sentAtSort, setSentAtSort] = useState("NEWEST_FIRST");
-  const [stageFilter, setStageFilter] = useState("ALL");
-  const [hideCompleted, setHideCompleted] = useState(false);
-  const [filterOpen, setFilterOpen] = useState(false);
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
 
   // Fetch leads growth data
   const { data: growthData } = useSWR(
@@ -72,7 +64,8 @@ export default function CampaignLeadsPage() {
     fetcher,
   );
 
-  // Fetch leads using SWR
+  // Fetch leads using SWR. Filtering, sorting and paging all happen server-side,
+  // so a change to any of them re-keys this request.
   const {
     data: leadsData,
     error,
@@ -80,7 +73,12 @@ export default function CampaignLeadsPage() {
     mutate,
   } = useSWR(
     campaignId
-      ? `/api/contacts/paginatedapi?campaign=${campaignId}&page=${currentPage}&search=${searchQuery}&sentAtSort=${sentAtSort}&stage=${stageFilter}&hideCompleted=${hideCompleted}`
+      ? `/api/contacts/paginatedapi?${buildLeadsQuery({
+          campaignId,
+          search: searchQuery,
+          page: currentPage,
+          filters,
+        })}`
       : null,
     fetcher,
     {
@@ -97,9 +95,10 @@ export default function CampaignLeadsPage() {
     setPage(1);
   };
 
-  // Handle filter changes
-  const handleFilterChange = () => {
-    setPage(1); // Reset to first page when filters change
+  // Applying filters re-fetches from the first page.
+  const handleApplyFilters = (next) => {
+    setFilters(next);
+    setPage(1);
   };
 
   // Handle page change
@@ -319,6 +318,12 @@ export default function CampaignLeadsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Leads Growth Chart */}
+      <div className="border border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4">
+        <h3 className="text-lg font-semibold mb-2">Leads Added Over Time</h3>
+        <LeadsGrowthChart growthData={growthData} />
+      </div>
+
       {/* Search and actions */}
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <form
@@ -338,115 +343,12 @@ export default function CampaignLeadsPage() {
         </form>
 
         <div className="flex space-x-2">
-          {/* Filter Popover */}
-          <Popover open={filterOpen} onOpenChange={setFilterOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="outline">
-                <FilterIcon className="w-4 h-4 mr-2" />
-                Filters
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <h4 className="font-medium leading-none">Filters</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Set your lead filtering preferences.
-                  </p>
-                </div>
-                <div className="grid gap-2">
-                  <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="sent-at-sort">Last Sent At</Label>
-                    <Select
-                      value={sentAtSort}
-                      onValueChange={(value) => {
-                        setSentAtSort(value);
-                        handleFilterChange();
-                      }}
-                    >
-                      <SelectTrigger className="col-span-2 h-8 border-black">
-                        <SelectValue placeholder="Sort by sent date" />
-                      </SelectTrigger>
-                      <SelectContent className="border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                        <SelectItem value="NEWEST_FIRST">
-                          Newest first
-                        </SelectItem>
-                        <SelectItem value="OLDEST_FIRST">
-                          Oldest first
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="stage-filter">Stage</Label>
-                    <Select
-                      value={stageFilter}
-                      onValueChange={(value) => {
-                        setStageFilter(value);
-                        handleFilterChange();
-                      }}
-                    >
-                      <SelectTrigger className="col-span-2 h-8 border-black">
-                        <SelectValue placeholder="Filter by stage" />
-                      </SelectTrigger>
-                      <SelectContent className="border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                        <SelectItem value="ALL">All stages</SelectItem>
-                        {Array.from(
-                          {
-                            length: (currentCampaign?.maxStageCount || 5) + 1,
-                          },
-                          (_, i) => (
-                            <SelectItem key={i} value={i.toString()}>
-                              Stage {i}
-                            </SelectItem>
-                          ),
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex items-center justify-between gap-4 pt-1">
-                    <Label htmlFor="hide-completed">Hide completed</Label>
-                    <button
-                      id="hide-completed"
-                      type="button"
-                      role="switch"
-                      aria-checked={hideCompleted}
-                      onClick={() => {
-                        setHideCompleted(!hideCompleted);
-                        handleFilterChange();
-                      }}
-                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-black transition-colors ${
-                        hideCompleted ? "bg-black" : "bg-gray-200"
-                      }`}
-                    >
-                      <span
-                        className={`pointer-events-none block h-3 w-3 rounded-full bg-white transition-transform ${
-                          hideCompleted ? "translate-x-4" : "translate-x-0.5"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-                <div className="flex justify-between">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSentAtSort("NEWEST_FIRST");
-                      setStageFilter("ALL");
-                      setHideCompleted(false);
-                      handleFilterChange();
-                    }}
-                  >
-                    Reset
-                  </Button>
-                  <Button size="sm" onClick={() => setFilterOpen(false)}>
-                    Apply
-                  </Button>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <LeadsFilters
+            filters={filters}
+            defaultFilters={DEFAULT_FILTERS}
+            onApply={handleApplyFilters}
+            maxStageCount={currentCampaign?.maxStageCount}
+          />
 
           <Button variant="outline" onClick={() => setAddLeadDialogOpen(true)}>
             <UserPlusIcon className="w-4 h-4 mr-2" />
@@ -459,17 +361,9 @@ export default function CampaignLeadsPage() {
           <ExportLeadsButton
             campaignId={campaignId}
             searchQuery={searchQuery}
-            sentAtSort={sentAtSort}
-            stageFilter={stageFilter}
-            hideCompleted={hideCompleted}
+            filters={filters}
           />
         </div>
-      </div>
-
-      {/* Leads Growth Chart */}
-      <div className="border border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4">
-        <h3 className="text-lg font-semibold mb-2">Leads Added Over Time</h3>
-        <LeadsGrowthChart growthData={growthData} />
       </div>
 
       {/* Error message */}

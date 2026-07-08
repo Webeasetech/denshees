@@ -9,6 +9,8 @@ const statusColors = {
   RUNNING: "bg-blue-50 text-blue-800 border-blue-300",
   PAUSING: "bg-purple-50 text-purple-800 border-purple-300",
   VERIFYING: "bg-indigo-50 text-indigo-800 border-indigo-300",
+  REPLIED: "bg-emerald-50 text-emerald-800 border-emerald-300",
+  BOUNCED: "bg-orange-50 text-orange-800 border-orange-300",
 };
 
 // Map status codes to human-readable text
@@ -20,6 +22,8 @@ const statusLabels = {
   RUNNING: "Running",
   PAUSING: "Pausing",
   VERIFYING: "Verifying",
+  REPLIED: "Replied",
+  BOUNCED: "Bounced",
 };
 
 const StatusChip = ({ status, size = "md", className }) => {
@@ -38,7 +42,7 @@ const StatusChip = ({ status, size = "md", className }) => {
         "inline-flex items-center justify-center font-medium border shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]",
         statusColors[status] || "bg-gray-50 text-gray-800 border-gray-300",
         sizeClasses[size],
-        className
+        className,
       )}
     >
       {label}
