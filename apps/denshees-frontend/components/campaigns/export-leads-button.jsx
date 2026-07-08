@@ -4,7 +4,9 @@ import { DownloadIcon } from "mage-icons-react/stroke";
 import useSWRMutation from "swr/mutation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { DateTime } from "luxon";
 import { get } from "@/lib/apis";
+import { buildLeadsQuery } from "@/lib/leads-query";
 
 function downloadCSV(leads, campaignId) {
   const headers = [
@@ -21,7 +23,9 @@ function downloadCSV(leads, campaignId) {
     lead.status,
     lead.stage || 0,
     lead.opened ? "Yes" : "No",
-    lead.sent_at || "",
+    lead.sentAt
+      ? DateTime.fromISO(lead.sentAt).toFormat("dd LLL yyyy, h:mm a")
+      : "",
   ]);
   const csv = [headers, ...rows]
     .map((row) =>
@@ -40,15 +44,13 @@ function downloadCSV(leads, campaignId) {
 export default function ExportLeadsButton({
   campaignId,
   searchQuery,
-  sentAtSort,
-  stageFilter,
-  hideCompleted,
+  filters,
 }) {
   const { trigger, isMutating } = useSWRMutation(
     `/api/contacts/export`,
     (url) =>
       get(
-        `${url}?campaign=${campaignId}&search=${searchQuery}&sentAtSort=${sentAtSort}&stage=${stageFilter}&hideCompleted=${hideCompleted}`,
+        `${url}?${buildLeadsQuery({ campaignId, search: searchQuery, filters })}`,
       ),
     {
       onSuccess: (data) => {
