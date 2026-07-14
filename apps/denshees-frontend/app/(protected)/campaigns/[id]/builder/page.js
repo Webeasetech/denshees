@@ -4,7 +4,6 @@ import { useParams } from "next/navigation";
 import useSWR from "swr";
 import fetcher from "@/lib/fetcher";
 import Builder from "@/components/campaigns/builder/builder";
-import "reactflow/dist/style.css";
 import LeadFinderChat from "@/components/lead-finder-chat";
 
 export default function CampaignBuilderPage() {
