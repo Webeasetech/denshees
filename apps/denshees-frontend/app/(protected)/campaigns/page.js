@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import StatusChip from "@/components/ui/status-chip";
 import CampaignDropdown from "@/components/campaigns/campaign-dropdown";
+import CreateCampaignDialog from "@/components/campaigns/create-campaign-dialog";
 import { Switch } from "@/components/ui/switch";
 import fetcher from "@/lib/fetcher";
 import { patch } from "@/lib/apis";
@@ -82,12 +83,12 @@ export default function CampaignsPage() {
           <h1 className="text-3xl font-bold">Campaigns</h1>
           <p className="text-gray-600 mt-1">Manage your email campaigns</p>
         </div>
-        <Link href="/campaigns/create">
+        <CreateCampaignDialog>
           <Button id="tour-new-campaign-btn">
             <PlusIcon className="w-4 h-4 mr-2" />
             New Campaign
           </Button>
-        </Link>
+        </CreateCampaignDialog>
       </div>
 
       <div className="border border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
