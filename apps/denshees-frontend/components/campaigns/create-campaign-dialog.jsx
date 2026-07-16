@@ -109,7 +109,7 @@ export default function CreateCampaignDialog({ children }) {
           </Button>
 
           <p className="text-xs text-gray-500">
-            Starts with a ready-made sequence — 4 emails, 1 day apart, sent
+            Starts with a ready-made sequence — 4 emails, 1 day apart, sent between
             6 AM–12 PM. Adjust anytime in Builder and Settings.
           </p>
         </div>
