@@ -22,6 +22,7 @@ import DelayNode from "@/components/campaigns/builder/flow/nodes/delay-node";
 import AddNode from "@/components/campaigns/builder/flow/nodes/add-node";
 import OutcomeNode from "@/components/campaigns/builder/flow/nodes/outcome-node";
 import { useCampaignFlow } from "@/components/campaigns/builder/flow/use-campaign-flow";
+import AutoFit from "@/components/campaigns/builder/flow/auto-fit";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -183,6 +184,11 @@ const Builder = ({ campaign }) => {
     selectedPitchId: selectedPitch?.id,
   });
 
+  const structureKey = useMemo(
+    () => nodes.map((node) => node.id).join("|"),
+    [nodes],
+  );
+
   if (pitchesLoading || contactsLoading) {
     return (
       <div className="flex items-center justify-center h-[500px]">
@@ -212,6 +218,7 @@ const Builder = ({ campaign }) => {
           minZoom={0.3}
           maxZoom={1.5}
         >
+          <AutoFit structureKey={structureKey} />
           <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
           <Controls showInteractive={false} />
           <MiniMap pannable zoomable className="!border-2 !border-black" />
