@@ -14,7 +14,6 @@ import { toast } from "sonner";
 import AppPasswordModal from "./app-password-modal";
 
 const TOUR_STORAGE_KEY = "denshees-tour-completed";
-const TOTAL_STEPS = 12;
 
 const TourContext = createContext({ startTour: () => {}, isTourActive: false });
 export const useTour = () => useContext(TourContext);
@@ -27,14 +26,6 @@ const STEPS = [
       "Let's walk through creating your first email outreach campaign! Click Next to head to the campaign builder.",
     skipBeacon: true,
     placement: "bottom",
-  },
-  {
-    target: "#tour-create-from-scratch",
-    title: "Build a Custom Campaign",
-    content:
-      'Click "Create from Scratch" to build a fully custom campaign — define your own messaging, timing, and follow-up sequence.',
-    skipBeacon: true,
-    placement: "right",
   },
   {
     target: "#title",
@@ -51,22 +42,6 @@ const STEPS = [
       "Describe your campaign's objective. Who are you reaching out to? What's the offer? This is for your reference only.",
     skipBeacon: true,
     placement: "top",
-  },
-  {
-    target: "#tour-followups-slider",
-    title: "Number of Follow-ups",
-    content:
-      "Set how many follow-up emails to send per contact. 3–5 is a sweet spot — persistent without being spammy.",
-    skipBeacon: true,
-    placement: "bottom",
-  },
-  {
-    target: "#tour-delay-slider",
-    title: "Delay Between Emails",
-    content:
-      "Set the gap in days between each follow-up. 2–3 days keeps you top of mind while giving prospects breathing room.",
-    skipBeacon: true,
-    placement: "bottom",
   },
   {
     target: "#tour-send-time",
@@ -120,6 +95,14 @@ const STEPS = [
     placement: "bottom",
   },
 ];
+
+// Steps that need special handling, located by target so the flow logic
+// survives steps being added or removed.
+const stepIndexOf = (target) => STEPS.findIndex((s) => s.target === target);
+const TITLE_STEP = stepIndexOf("#title");
+const DESC_STEP = stepIndexOf("#desc");
+const SEND_TIME_STEP = stepIndexOf("#tour-send-time");
+const REVIEW_STEP = stepIndexOf("#tour-stepper-next");
 
 // Color tokens + behavior flags — passed as `options` prop in v3
 const joyrideOptions = {
@@ -217,9 +200,13 @@ export function TourProvider({ children }) {
       /^\/campaigns\/[^/]+$/.test(pathname) && pathname !== "/campaigns/create";
     const wasOnCreatePage = prev === "/campaigns/create";
 
-    if (isNowOnCampaignDetail && wasOnCreatePage && stepIndexRef.current === 7) {
+    if (
+      isNowOnCampaignDetail &&
+      wasOnCreatePage &&
+      stepIndexRef.current === REVIEW_STEP
+    ) {
       setTimeout(() => {
-        setStepIndex(8);
+        setStepIndex(REVIEW_STEP + 1);
         setRun(true);
       }, 800);
     }
@@ -258,26 +245,16 @@ export function TourProvider({ children }) {
       // Moving forward — validate required fields before advancing
       switch (index) {
         case 0:
-          // campaigns list → navigate to create page
+          // campaigns list → navigate straight to the create form
           setRun(false);
           router.push("/campaigns/create");
           setTimeout(() => {
-            setStepIndex(1);
+            setStepIndex(TITLE_STEP);
             setRun(true);
           }, 800);
           break;
 
-        case 1:
-          // Template selection → click "Create from Scratch"
-          setRun(false);
-          document.getElementById("tour-create-from-scratch")?.click();
-          setTimeout(() => {
-            setStepIndex(2);
-            setRun(true);
-          }, 400);
-          break;
-
-        case 2: {
+        case TITLE_STEP: {
           // title — must not be empty
           const title = document.getElementById("title")?.value?.trim();
           if (!title) {
@@ -285,11 +262,11 @@ export function TourProvider({ children }) {
             controls.open();
             return;
           }
-          setStepIndex(3);
+          setStepIndex(DESC_STEP);
           break;
         }
 
-        case 3: {
+        case DESC_STEP: {
           // desc — must not be empty, then advance wizard to Settings
           const desc = document.getElementById("desc")?.value?.trim();
           if (!desc) {
@@ -300,13 +277,13 @@ export function TourProvider({ children }) {
           setRun(false);
           document.getElementById("tour-stepper-next")?.click();
           setTimeout(() => {
-            setStepIndex(4);
+            setStepIndex(SEND_TIME_STEP);
             setRun(true);
           }, 350);
           break;
         }
 
-        case 6: {
+        case SEND_TIME_STEP: {
           // send time — Radix SelectValue renders data-placeholder when nothing is chosen
           const noValue = document.querySelector(
             "#tour-send-time [data-placeholder]",
@@ -320,20 +297,20 @@ export function TourProvider({ children }) {
           setRun(false);
           document.getElementById("tour-stepper-next")?.click();
           setTimeout(() => {
-            setStepIndex(7);
+            setStepIndex(REVIEW_STEP);
             setRun(true);
           }, 350);
           break;
         }
 
-        case 7:
+        case REVIEW_STEP:
           // review → trigger campaign creation
           setRun(false);
           document.getElementById("tour-stepper-next")?.click();
-          // useEffect detects navigation to /campaigns/[id] and advances to step 8
+          // useEffect detects navigation to /campaigns/[id] and advances past review
           break;
 
-        case TOTAL_STEPS - 1:
+        case STEPS.length - 1:
           completeTour();
           break;
 
