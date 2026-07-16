@@ -23,7 +23,7 @@ const STEPS = [
     target: "#tour-new-campaign-btn",
     title: "Create Your First Campaign",
     content:
-      "Let's walk through creating your first email outreach campaign! Click Next to head to the campaign builder.",
+      "Let's walk through creating your first email outreach campaign! Click Next to get started.",
     skipBeacon: true,
     placement: "bottom",
   },
@@ -44,21 +44,10 @@ const STEPS = [
     placement: "top",
   },
   {
-    target: "#tour-send-time",
-    title: "Best Time to Send",
+    target: "#tour-create-campaign-submit",
+    title: "Create It!",
     content:
-      "Choose when your emails go out. Morning (6AM–12PM) typically gets the highest open rates for B2B outreach.",
-    skipBeacon: true,
-    placement: "bottom",
-    // Radix SelectContent renders in a portal outside the spotlight cutout.
-    // Hiding the overlay for this step lets the dropdown items receive pointer events.
-    hideOverlay: true,
-  },
-  {
-    target: "#tour-stepper-next",
-    title: "Review & Launch!",
-    content:
-      "Double-check your campaign settings above, then click Complete to create it. You can always tweak settings later.",
+      "Click Next to create your campaign. It starts with a ready-made sequence you can shape in the Builder afterwards.",
     skipBeacon: true,
     placement: "top",
   },
@@ -101,8 +90,7 @@ const STEPS = [
 const stepIndexOf = (target) => STEPS.findIndex((s) => s.target === target);
 const TITLE_STEP = stepIndexOf("#title");
 const DESC_STEP = stepIndexOf("#desc");
-const SEND_TIME_STEP = stepIndexOf("#tour-send-time");
-const REVIEW_STEP = stepIndexOf("#tour-stepper-next");
+const CREATE_STEP = stepIndexOf("#tour-create-campaign-submit");
 
 // Color tokens + behavior flags — passed as `options` prop in v3
 const joyrideOptions = {
@@ -191,22 +179,22 @@ export function TourProvider({ children }) {
     }
   }, []);
 
-  // Detect navigation from /campaigns/create → /campaigns/[id] after campaign creation
+  // Detect navigation from the campaigns list → /campaigns/[id] after the
+  // create dialog submits
   useEffect(() => {
     const prev = prevPathnameRef.current;
     prevPathnameRef.current = pathname;
 
-    const isNowOnCampaignDetail =
-      /^\/campaigns\/[^/]+$/.test(pathname) && pathname !== "/campaigns/create";
-    const wasOnCreatePage = prev === "/campaigns/create";
+    const isNowOnCampaignDetail = /^\/campaigns\/[^/]+$/.test(pathname);
+    const wasOnCampaignsList = prev === "/campaigns";
 
     if (
       isNowOnCampaignDetail &&
-      wasOnCreatePage &&
-      stepIndexRef.current === REVIEW_STEP
+      wasOnCampaignsList &&
+      stepIndexRef.current === CREATE_STEP
     ) {
       setTimeout(() => {
-        setStepIndex(REVIEW_STEP + 1);
+        setStepIndex(CREATE_STEP + 1);
         setRun(true);
       }, 800);
     }
@@ -245,13 +233,13 @@ export function TourProvider({ children }) {
       // Moving forward — validate required fields before advancing
       switch (index) {
         case 0:
-          // campaigns list → navigate straight to the create form
+          // campaigns list → open the create-campaign dialog
           setRun(false);
-          router.push("/campaigns/create");
+          document.getElementById("tour-new-campaign-btn")?.click();
           setTimeout(() => {
             setStepIndex(TITLE_STEP);
             setRun(true);
-          }, 800);
+          }, 400);
           break;
 
         case TITLE_STEP: {
@@ -267,47 +255,22 @@ export function TourProvider({ children }) {
         }
 
         case DESC_STEP: {
-          // desc — must not be empty, then advance wizard to Settings
+          // desc — must not be empty
           const desc = document.getElementById("desc")?.value?.trim();
           if (!desc) {
             toast.error("Please enter a campaign description before continuing.");
             controls.open();
             return;
           }
-          setRun(false);
-          document.getElementById("tour-stepper-next")?.click();
-          setTimeout(() => {
-            setStepIndex(SEND_TIME_STEP);
-            setRun(true);
-          }, 350);
+          setStepIndex(CREATE_STEP);
           break;
         }
 
-        case SEND_TIME_STEP: {
-          // send time — Radix SelectValue renders data-placeholder when nothing is chosen
-          const noValue = document.querySelector(
-            "#tour-send-time [data-placeholder]",
-          );
-          if (noValue) {
-            toast.error("Please select a send time before continuing.");
-            controls.open();
-            return;
-          }
-          // advance wizard to Review sub-step
+        case CREATE_STEP:
+          // submit → dialog creates the campaign and navigates to its page;
+          // the navigation effect advances the tour there
           setRun(false);
-          document.getElementById("tour-stepper-next")?.click();
-          setTimeout(() => {
-            setStepIndex(REVIEW_STEP);
-            setRun(true);
-          }, 350);
-          break;
-        }
-
-        case REVIEW_STEP:
-          // review → trigger campaign creation
-          setRun(false);
-          document.getElementById("tour-stepper-next")?.click();
-          // useEffect detects navigation to /campaigns/[id] and advances past review
+          document.getElementById("tour-create-campaign-submit")?.click();
           break;
 
         case STEPS.length - 1:
