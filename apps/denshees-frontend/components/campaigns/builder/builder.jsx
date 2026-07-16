@@ -202,7 +202,10 @@ const Builder = ({ campaign }) => {
           nodeTypes={nodeTypes}
           nodesDraggable={false}
           nodesConnectable={false}
-          elementsSelectable={false}
+          // elementsSelectable must stay on: with draggable, connectable and
+          // selectable all false, xyflow renders node wrappers with
+          // pointer-events: none, making node content unclickable.
+          elementsSelectable
           proOptions={{ hideAttribution: true }}
           fitView
           fitViewOptions={{ padding: 0.2 }}
