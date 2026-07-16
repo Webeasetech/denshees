@@ -14,7 +14,6 @@ import { toast } from "sonner";
 import AppPasswordModal from "./app-password-modal";
 
 const TOUR_STORAGE_KEY = "denshees-tour-completed";
-const TOTAL_STEPS = 12;
 
 const TourContext = createContext({ startTour: () => {}, isTourActive: false });
 export const useTour = () => useContext(TourContext);
@@ -24,17 +23,9 @@ const STEPS = [
     target: "#tour-new-campaign-btn",
     title: "Create Your First Campaign",
     content:
-      "Let's walk through creating your first email outreach campaign! Click Next to head to the campaign builder.",
+      "Let's walk through creating your first email outreach campaign! Click Next to get started.",
     skipBeacon: true,
     placement: "bottom",
-  },
-  {
-    target: "#tour-create-from-scratch",
-    title: "Build a Custom Campaign",
-    content:
-      'Click "Create from Scratch" to build a fully custom campaign — define your own messaging, timing, and follow-up sequence.',
-    skipBeacon: true,
-    placement: "right",
   },
   {
     target: "#title",
@@ -53,37 +44,10 @@ const STEPS = [
     placement: "top",
   },
   {
-    target: "#tour-followups-slider",
-    title: "Number of Follow-ups",
+    target: "#tour-create-campaign-submit",
+    title: "Create It!",
     content:
-      "Set how many follow-up emails to send per contact. 3–5 is a sweet spot — persistent without being spammy.",
-    skipBeacon: true,
-    placement: "bottom",
-  },
-  {
-    target: "#tour-delay-slider",
-    title: "Delay Between Emails",
-    content:
-      "Set the gap in days between each follow-up. 2–3 days keeps you top of mind while giving prospects breathing room.",
-    skipBeacon: true,
-    placement: "bottom",
-  },
-  {
-    target: "#tour-send-time",
-    title: "Best Time to Send",
-    content:
-      "Choose when your emails go out. Morning (6AM–12PM) typically gets the highest open rates for B2B outreach.",
-    skipBeacon: true,
-    placement: "bottom",
-    // Radix SelectContent renders in a portal outside the spotlight cutout.
-    // Hiding the overlay for this step lets the dropdown items receive pointer events.
-    hideOverlay: true,
-  },
-  {
-    target: "#tour-stepper-next",
-    title: "Review & Launch!",
-    content:
-      "Double-check your campaign settings above, then click Complete to create it. You can always tweak settings later.",
+      "Click Next to create your campaign. It starts with a ready-made sequence you can shape in the Builder afterwards.",
     skipBeacon: true,
     placement: "top",
   },
@@ -120,6 +84,13 @@ const STEPS = [
     placement: "bottom",
   },
 ];
+
+// Steps that need special handling, located by target so the flow logic
+// survives steps being added or removed.
+const stepIndexOf = (target) => STEPS.findIndex((s) => s.target === target);
+const TITLE_STEP = stepIndexOf("#title");
+const DESC_STEP = stepIndexOf("#desc");
+const CREATE_STEP = stepIndexOf("#tour-create-campaign-submit");
 
 // Color tokens + behavior flags — passed as `options` prop in v3
 const joyrideOptions = {
@@ -208,18 +179,22 @@ export function TourProvider({ children }) {
     }
   }, []);
 
-  // Detect navigation from /campaigns/create → /campaigns/[id] after campaign creation
+  // Detect navigation from the campaigns list → /campaigns/[id] after the
+  // create dialog submits
   useEffect(() => {
     const prev = prevPathnameRef.current;
     prevPathnameRef.current = pathname;
 
-    const isNowOnCampaignDetail =
-      /^\/campaigns\/[^/]+$/.test(pathname) && pathname !== "/campaigns/create";
-    const wasOnCreatePage = prev === "/campaigns/create";
+    const isNowOnCampaignDetail = /^\/campaigns\/[^/]+$/.test(pathname);
+    const wasOnCampaignsList = prev === "/campaigns";
 
-    if (isNowOnCampaignDetail && wasOnCreatePage && stepIndexRef.current === 7) {
+    if (
+      isNowOnCampaignDetail &&
+      wasOnCampaignsList &&
+      stepIndexRef.current === CREATE_STEP
+    ) {
       setTimeout(() => {
-        setStepIndex(8);
+        setStepIndex(CREATE_STEP + 1);
         setRun(true);
       }, 800);
     }
@@ -258,26 +233,16 @@ export function TourProvider({ children }) {
       // Moving forward — validate required fields before advancing
       switch (index) {
         case 0:
-          // campaigns list → navigate to create page
+          // campaigns list → open the create-campaign dialog
           setRun(false);
-          router.push("/campaigns/create");
+          document.getElementById("tour-new-campaign-btn")?.click();
           setTimeout(() => {
-            setStepIndex(1);
-            setRun(true);
-          }, 800);
-          break;
-
-        case 1:
-          // Template selection → click "Create from Scratch"
-          setRun(false);
-          document.getElementById("tour-create-from-scratch")?.click();
-          setTimeout(() => {
-            setStepIndex(2);
+            setStepIndex(TITLE_STEP);
             setRun(true);
           }, 400);
           break;
 
-        case 2: {
+        case TITLE_STEP: {
           // title — must not be empty
           const title = document.getElementById("title")?.value?.trim();
           if (!title) {
@@ -285,55 +250,30 @@ export function TourProvider({ children }) {
             controls.open();
             return;
           }
-          setStepIndex(3);
+          setStepIndex(DESC_STEP);
           break;
         }
 
-        case 3: {
-          // desc — must not be empty, then advance wizard to Settings
+        case DESC_STEP: {
+          // desc — must not be empty
           const desc = document.getElementById("desc")?.value?.trim();
           if (!desc) {
             toast.error("Please enter a campaign description before continuing.");
             controls.open();
             return;
           }
-          setRun(false);
-          document.getElementById("tour-stepper-next")?.click();
-          setTimeout(() => {
-            setStepIndex(4);
-            setRun(true);
-          }, 350);
+          setStepIndex(CREATE_STEP);
           break;
         }
 
-        case 6: {
-          // send time — Radix SelectValue renders data-placeholder when nothing is chosen
-          const noValue = document.querySelector(
-            "#tour-send-time [data-placeholder]",
-          );
-          if (noValue) {
-            toast.error("Please select a send time before continuing.");
-            controls.open();
-            return;
-          }
-          // advance wizard to Review sub-step
+        case CREATE_STEP:
+          // submit → dialog creates the campaign and navigates to its page;
+          // the navigation effect advances the tour there
           setRun(false);
-          document.getElementById("tour-stepper-next")?.click();
-          setTimeout(() => {
-            setStepIndex(7);
-            setRun(true);
-          }, 350);
-          break;
-        }
-
-        case 7:
-          // review → trigger campaign creation
-          setRun(false);
-          document.getElementById("tour-stepper-next")?.click();
-          // useEffect detects navigation to /campaigns/[id] and advances to step 8
+          document.getElementById("tour-create-campaign-submit")?.click();
           break;
 
-        case TOTAL_STEPS - 1:
+        case STEPS.length - 1:
           completeTour();
           break;
 

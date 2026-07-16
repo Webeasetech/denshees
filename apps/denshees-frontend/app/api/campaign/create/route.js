@@ -2,19 +2,28 @@ import { jwtDecode } from "jwt-decode";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
+// Sequence shape is edited in the Builder after creation; campaigns start with
+// a default sequence. Count/delay overrides are still accepted in the body for
+// API callers (e.g. the AI agent's create_campaign tool).
+const DEFAULT_STAGE_COUNT = 4;
+const DEFAULT_DELAY_DAYS = 1;
+
 export async function POST(request) {
   const { title, max_stage_count, days_interval, desc, email_delivery_period } =
     await request.json();
   const token = request.headers.get("authorization");
   const user = jwtDecode(token);
 
+  const stageCount = max_stage_count ?? DEFAULT_STAGE_COUNT;
+  const delayDays = days_interval ?? DEFAULT_DELAY_DAYS;
+
   try {
     const campaign = await prisma.campaign.create({
       data: {
         title,
         userId: user.userId,
-        maxStageCount: max_stage_count,
-        daysInterval: days_interval,
+        maxStageCount: stageCount,
+        daysInterval: delayDays,
         desc,
         emailDeliveryPeriod: email_delivery_period,
         status: "PENDING",
@@ -36,11 +45,12 @@ export async function POST(request) {
         subject: subject_1,
         campaignId: campaign.id,
         stage: 0,
+        delayDays,
       },
     });
 
-    if (max_stage_count > 1) {
-      for (let i = 1; i < max_stage_count; i++) {
+    if (stageCount > 1) {
+      for (let i = 1; i < stageCount; i++) {
         await prisma.pitchEmail.create({
           data: {
             title: `Follow Up ${i}`,
@@ -48,6 +58,7 @@ export async function POST(request) {
             subject: follow_up_subject,
             campaignId: campaign.id,
             stage: i,
+            delayDays,
           },
         });
       }

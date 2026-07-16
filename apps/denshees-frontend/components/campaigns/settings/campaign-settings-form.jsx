@@ -10,7 +10,6 @@ import { mutate } from "swr";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { InformationCircleIcon, CalendarIcon } from "mage-icons-react/bulk";
-import { Slider } from "@/components/ui/slider";
 import {
   Select,
   SelectContent,
@@ -20,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 import {
   Tooltip,
   TooltipContent,
@@ -31,8 +29,6 @@ import {
 const CampaignSettingsForm = ({ campaign, campaignData }) => {
   const [ignoreVerification, setIgnoreVerification] = useState(false);
   const [isTrackingEnabled, setIsTrackingEnabled] = useState(false);
-  const [delaySliderValue, setDelaySliderValue] = useState([3]);
-  const [followUpsSliderValue, setFollowUpsSliderValue] = useState([3]);
   const [activeDays, setActiveDays] = useState([]);
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
@@ -55,8 +51,6 @@ const CampaignSettingsForm = ({ campaign, campaignData }) => {
       setIsTrackingEnabled(campaignData.isTrackingEnabled || false);
       setTitle(campaignData.title);
       setDesc(campaignData.desc);
-      setDelaySliderValue([campaignData.daysInterval]);
-      setFollowUpsSliderValue([campaignData.maxStageCount]);
       setTime(campaignData.emailDeliveryPeriod || "");
       setActiveDays(campaignData.activeDays || []);
     }
@@ -78,14 +72,7 @@ const CampaignSettingsForm = ({ campaign, campaignData }) => {
     event.preventDefault();
     setLoading(true);
 
-    if (
-      !title ||
-      !desc ||
-      !delaySliderValue ||
-      !followUpsSliderValue ||
-      !time ||
-      activeDays.length === 0
-    ) {
+    if (!title || !desc || !time || activeDays.length === 0) {
       toast.error(
         "Please fill all the fields and select at least one active day!",
       );
@@ -97,8 +84,6 @@ const CampaignSettingsForm = ({ campaign, campaignData }) => {
       await trigger({
         title,
         desc,
-        max_stage_count: followUpsSliderValue[0],
-        days_interval: delaySliderValue[0],
         email_delivery_period: time,
         ignore_verification: ignoreVerification,
         isTrackingEnabled: isTrackingEnabled,
@@ -151,77 +136,6 @@ const CampaignSettingsForm = ({ campaign, campaignData }) => {
         <h3 className="text-lg font-semibold mb-4">Email Sequence Settings</h3>
 
         <div className="space-y-6">
-          <div>
-            <div className="flex items-center mb-2">
-              <Label htmlFor="followups" className="mr-2">
-                Number of email follow-ups to each contact:{" "}
-                {followUpsSliderValue}
-              </Label>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <InformationCircleIcon className="w-4 h-4 text-gray-500 cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent className="bg-white border border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                    <p className="text-sm">
-                      You cannot update this at the moment.
-                      <br />
-                      This feature will be launched soon!
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-
-            <div className="flex items-center">
-              <span className="mr-4">0</span>
-              <Slider
-                disabled={true}
-                value={followUpsSliderValue}
-                min={0}
-                max={10}
-                step={1}
-                className={cn("w-full max-w-md cursor-not-allowed")}
-              />
-              <span className="ml-4">10</span>
-            </div>
-          </div>
-
-          <div>
-            <div className="flex items-center mb-2">
-              <Label htmlFor="delay" className="mr-2">
-                Delay between email follow-ups (in days): {delaySliderValue}
-              </Label>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <InformationCircleIcon className="w-4 h-4 text-gray-500 cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent className="bg-white border border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                    <p className="text-sm">
-                      You cannot update this at the moment.
-                      <br />
-                      This feature will be launched soon!
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-
-            <div className="flex items-center">
-              <span className="mr-4">1</span>
-              <Slider
-                disabled={true}
-                value={delaySliderValue}
-                min={1}
-                max={8}
-                step={1}
-                className={cn("w-full max-w-md cursor-not-allowed")}
-              />
-              <span className="ml-4">8</span>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <Label htmlFor="time" className="mb-2 block">
