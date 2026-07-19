@@ -24,6 +24,9 @@ model User {
   credits   Float?   @default(0)
   aiCredits Float?   @default(0) @map("ai_credits")
   isSetup   Boolean  @default(false) @map("issetup")
+  // Product walkthrough (react-joyride tour) — shown while false, flipped true
+  // once the user completes, skips, or closes it, so it never shows again.
+  tourCompleted Boolean @default(false) @map("tour_completed")
   password  String?
   verified  Boolean  @default(false)
   created   DateTime @default(now())
