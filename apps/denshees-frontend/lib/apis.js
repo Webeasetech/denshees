@@ -12,6 +12,6 @@ export async function patch(url, { arg }) {
   return instance.patch(url, arg);
 }
 
-export async function remove(url, { arg }) {
+export async function remove(url, { arg } = {}) {
   return instance.delete(url, arg);
 }
