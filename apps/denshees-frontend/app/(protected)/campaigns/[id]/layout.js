@@ -121,8 +121,6 @@ export default function CampaignLayout({ children }) {
   // Check if a tab is active
   const isTabActive = (href) => pathname === href;
 
-  if (isLoading) return null;
-
   // Determine if the start button should be disabled
   const isStartButtonDisabled =
     isUpdatingStatus ||
@@ -144,7 +142,9 @@ export default function CampaignLayout({ children }) {
               ? "Loading..."
               : currentCampaign?.title || "Campaign Details"}
           </h1>
-          {currentCampaign && <StatusChip status={currentCampaign.status} className="shrink-0" />}
+          {!isLoading && currentCampaign && (
+            <StatusChip status={currentCampaign.status} className="shrink-0" />
+          )}
         </div>
 
         {/* Error message */}
@@ -175,7 +175,7 @@ export default function CampaignLayout({ children }) {
               ))}
             </div>
 
-            {currentCampaign && (
+            {!isLoading && currentCampaign && (
               <div className="shrink-0">
                 {!hasEmails && currentCampaign.status !== "RUNNING" ? (
                   <TooltipProvider>
@@ -232,7 +232,8 @@ export default function CampaignLayout({ children }) {
         </div>
 
         {/* No emails warning */}
-        {currentCampaign &&
+        {!isLoading &&
+          currentCampaign &&
           !hasEmails &&
           currentCampaign.status !== "RUNNING" && (
             <div className="mt-4 border border-amber-300 bg-amber-50 p-3 rounded-none flex items-center">

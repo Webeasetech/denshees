@@ -61,10 +61,27 @@ export default function CreateCampaignDialog({ children }) {
     }
   };
 
+  // While the tour is active its tooltip lives outside the dialog, so Radix's
+  // outside-interaction dismissal (pointer/focus/escape) would close the dialog
+  // the moment the tooltip takes focus or its Next button is clicked. Block
+  // dismissal during the tour; handleCreate still closes it via setOpen.
+  const handleOpenChange = (next) => {
+    if (isTourActive && !next) return;
+    setOpen(next);
+  };
+  const blockWhileTouring = (e) => {
+    if (isTourActive) e.preventDefault();
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen} modal={!isTourActive}>
+    <Dialog open={open} onOpenChange={handleOpenChange} modal={!isTourActive}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-md border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+      <DialogContent
+        className="sm:max-w-md border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+        onInteractOutside={blockWhileTouring}
+        onFocusOutside={blockWhileTouring}
+        onEscapeKeyDown={blockWhileTouring}
+      >
         <DialogHeader>
           <DialogTitle>Create Campaign</DialogTitle>
           <DialogDescription>

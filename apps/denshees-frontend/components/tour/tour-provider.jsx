@@ -11,12 +11,35 @@ import {
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
+import useAuthStore from "@/store/auth.store";
 import AppPasswordModal from "./app-password-modal";
 
-const TOUR_STORAGE_KEY = "denshees-tour-completed";
-
-const TourContext = createContext({ startTour: () => {}, isTourActive: false });
+const TourContext = createContext({ isTourActive: false });
 export const useTour = () => useContext(TourContext);
+
+// Resolves once the selector exists in the DOM — lets `before` hooks block a
+// step until its target has mounted instead of guessing with timeouts.
+const waitForElement = (selector, timeout = 5000) =>
+  new Promise((resolve, reject) => {
+    const start = Date.now();
+    const check = () => {
+      const el = document.querySelector(selector);
+      if (el) return resolve(el);
+      if (Date.now() - start > timeout)
+        return reject(new Error(`Timed out waiting for ${selector}`));
+      requestAnimationFrame(check);
+    };
+    check();
+  });
+
+// Opens the create-campaign dialog if it isn't already, waiting until its
+// fields are mounted. Used by the dialog steps so the tour self-heals even if
+// the dialog was never opened (or got closed) before the step renders.
+const ensureCreateDialogOpen = async () => {
+  if (document.getElementById("title")) return;
+  document.getElementById("tour-new-campaign-btn")?.click();
+  await waitForElement("#title");
+};
 
 const STEPS = [
   {
@@ -34,6 +57,7 @@ const STEPS = [
       'Give your campaign a clear name — something that reflects who you\'re targeting (e.g. "Q2 SaaS Outreach").',
     skipBeacon: true,
     placement: "bottom",
+    before: ensureCreateDialogOpen,
   },
   {
     target: "#desc",
@@ -42,6 +66,7 @@ const STEPS = [
       "Describe your campaign's objective. Who are you reaching out to? What's the offer? This is for your reference only.",
     skipBeacon: true,
     placement: "top",
+    before: ensureCreateDialogOpen,
   },
   {
     target: "#tour-create-campaign-submit",
@@ -50,6 +75,7 @@ const STEPS = [
       "Click Next to create your campaign. It starts with a ready-made sequence you can shape in the Builder afterwards.",
     skipBeacon: true,
     placement: "top",
+    before: ensureCreateDialogOpen,
   },
   {
     target: "#tour-tab-leads",
@@ -159,6 +185,7 @@ const joyrideStyles = {
 export function TourProvider({ children }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { user, token, updateUser } = useAuthStore();
   const [run, setRun] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [showModal, setShowModal] = useState(false);
@@ -169,15 +196,20 @@ export function TourProvider({ children }) {
     stepIndexRef.current = stepIndex;
   }, [stepIndex]);
 
+  // Start the tour once for users who haven't finished it (DB-backed flag).
+  // `startedRef` is set when the timer fires — not when scheduled — so React
+  // StrictMode's mount→cleanup→mount (which clears the pending timer) still
+  // reschedules instead of latching the guard and killing the tour.
+  const startedRef = useRef(false);
   useEffect(() => {
-    const completed = localStorage.getItem(TOUR_STORAGE_KEY);
-    if (!completed) {
-      setTimeout(() => {
-        router.push("/campaigns");
-        setTimeout(() => setRun(true), 800);
-      }, 1200);
-    }
-  }, []);
+    if (startedRef.current || !user || user.tourCompleted) return;
+    const t = setTimeout(() => {
+      startedRef.current = true;
+      router.push("/campaigns");
+      setTimeout(() => setRun(true), 800);
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [user, router]);
 
   // Detect navigation from the campaigns list → /campaigns/[id] after the
   // create dialog submits
@@ -202,9 +234,18 @@ export function TourProvider({ children }) {
 
   const completeTour = useCallback(() => {
     setRun(false);
-    localStorage.setItem(TOUR_STORAGE_KEY, "true");
     setShowModal(true);
-  }, []);
+    // Persist so the tour never shows again — completed, skipped, or closed.
+    updateUser({ tourCompleted: true });
+    if (token) {
+      fetch("/api/auth/complete-tour", {
+        method: "POST",
+        headers: { Authorization: token },
+      }).catch((err) =>
+        console.error("Failed to persist tour completion:", err),
+      );
+    }
+  }, [token, updateUser]);
 
   const handleEvent = useCallback(
     (data, controls) => {
@@ -212,12 +253,6 @@ export function TourProvider({ children }) {
 
       if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
         completeTour();
-        return;
-      }
-
-      if (type === "error:target_not_found") {
-        setRun(false);
-        setTimeout(() => setRun(true), 600);
         return;
       }
 
@@ -233,13 +268,8 @@ export function TourProvider({ children }) {
       // Moving forward — validate required fields before advancing
       switch (index) {
         case 0:
-          // campaigns list → open the create-campaign dialog
-          setRun(false);
-          document.getElementById("tour-new-campaign-btn")?.click();
-          setTimeout(() => {
-            setStepIndex(TITLE_STEP);
-            setRun(true);
-          }, 400);
+          // TITLE_STEP's before hook opens the create dialog and waits for it
+          setStepIndex(TITLE_STEP);
           break;
 
         case TITLE_STEP: {
@@ -281,7 +311,7 @@ export function TourProvider({ children }) {
           setStepIndex(index + 1);
       }
     },
-    [router, completeTour],
+    [completeTour],
   );
 
   const { Tour } = useJoyride({
@@ -304,16 +334,8 @@ export function TourProvider({ children }) {
     onEvent: handleEvent,
   });
 
-  const startTour = useCallback(() => {
-    localStorage.removeItem(TOUR_STORAGE_KEY);
-    setStepIndex(0);
-    setShowModal(false);
-    router.push("/campaigns");
-    setTimeout(() => setRun(true), 800);
-  }, [router]);
-
   return (
-    <TourContext.Provider value={{ startTour, isTourActive: run }}>
+    <TourContext.Provider value={{ isTourActive: run }}>
       {Tour}
       {children}
       <AppPasswordModal open={showModal} onClose={() => setShowModal(false)} />
