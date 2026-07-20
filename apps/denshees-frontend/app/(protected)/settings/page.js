@@ -9,12 +9,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { EmailIcon, SaveFloppyIcon } from "mage-icons-react/bulk";
-import { PlusIcon, ReloadIcon } from "mage-icons-react/stroke";
+import { PlusIcon, ReloadIcon, TrashIcon } from "mage-icons-react/stroke";
 import useSWR from "swr";
 import fetcher from "@/lib/fetcher";
 import useSWRMutation from "swr/mutation";
-import { patch } from "@/lib/apis";
+import { patch, remove } from "@/lib/apis";
 import { toast } from "sonner";
 import CreateSMTP from "@/components/campaigns/settings/create-smtp";
 import { SettingsNav } from "@/components/settings/settings-nav";
@@ -41,6 +51,8 @@ function EmailSettings() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingLimits, setEditingLimits] = useState({});
   const [savingIds, setSavingIds] = useState([]);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch available email accounts
   const {
@@ -89,6 +101,28 @@ function EmailSettings() {
       setSavingIds((prev) => prev.filter((id) => id !== email.id));
     }
   };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+
+    setIsDeleting(true);
+    try {
+      await remove(`/api/google_apps/${deleteTarget.id}`);
+      toast.success("Email account removed");
+      setDeleteTarget(null);
+      refreshEmails();
+    } catch (error) {
+      const message =
+        error?.response?.data?.message || "Failed to remove email account";
+      toast.error(message);
+      // Refresh so usage counts reflect reality if a campaign changed.
+      refreshEmails();
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const isBlocked = (deleteTarget?.activeCampaignCount || 0) > 0;
 
   if (isLoading) {
     return (
@@ -197,6 +231,15 @@ function EmailSettings() {
                         </>
                       )}
                     </Button>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      aria-label={`Remove ${email.username}`}
+                      onClick={() => setDeleteTarget(email)}
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -214,6 +257,54 @@ function EmailSettings() {
           <CreateSMTP />
         </DialogContent>
       </Dialog>
+
+      {/* Delete Credential Confirmation */}
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {isBlocked ? "Can't remove this account" : "Remove email account?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {isBlocked
+                ? `${deleteTarget?.username} is used in ${
+                    deleteTarget?.activeCampaignCount
+                  } active campaign${
+                    deleteTarget?.activeCampaignCount === 1 ? "" : "s"
+                  }. Unselect it from those campaigns before you can remove it.`
+                : `${deleteTarget?.username} isn't used in any active campaign. This removes it permanently and can't be undone.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>
+              {isBlocked ? "Close" : "Cancel"}
+            </AlertDialogCancel>
+            {!isBlocked && (
+              <AlertDialogAction
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleConfirmDelete();
+                }}
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <>
+                    <ReloadIcon className="h-4 w-4 mr-2 animate-spin" />
+                    Removing...
+                  </>
+                ) : (
+                  "Remove"
+                )}
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
