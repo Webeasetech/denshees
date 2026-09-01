@@ -16,5 +16,10 @@
   "packageManager": "pnpm@9.0.0",
   "engines": {
     "node": ">=20.9"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "mage-icons-react@0.7.0-beta": "patches/mage-icons-react@0.7.0-beta.patch"
+    }
   }
 }
