@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { trackServer, userIdFromToken } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 export const revalidate = 0;
 
-export async function GET(request, { params }) {
+export async function GET(request, props) {
+  const params = await props.params;
   const { id } = params;
 
   try {
@@ -13,6 +16,11 @@ export async function GET(request, { params }) {
     });
 
     const emails = campaignEmailCreds.map((cec) => cec.emailCredential);
+    await trackServer(EVENTS.CAMPAIGN_RECIPIENTS_SELECTED, userIdFromToken(request.headers.get("authorization")), {
+      campaign_id: params.id,
+      count: emails.length,
+    });
+
     return NextResponse.json(emails);
   } catch (error) {
     console.error(

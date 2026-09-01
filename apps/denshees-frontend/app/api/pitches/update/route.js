@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { trackServer, userIdFromToken } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 export async function PATCH(request) {
   const searchParams = new URL(request.url).searchParams;
@@ -17,6 +19,11 @@ export async function PATCH(request) {
     const record = await prisma.pitchEmail.update({
       where: { id: pitch },
       data,
+    });
+
+    await trackServer(EVENTS.PITCH_UPDATED, userIdFromToken(request.headers.get("authorization")), {
+      pitch_id: pitch,
+      has_subject: Boolean(subject),
     });
 
     return NextResponse.json(record);

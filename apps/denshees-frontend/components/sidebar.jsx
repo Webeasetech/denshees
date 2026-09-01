@@ -111,7 +111,7 @@ export function Sidebar({ onWidthChange }) {
           ))}
           {supportLinks.slice(0, 1).map((link) => (
             <Link
-              key={link.href}
+              key={link.label}
               href={link.href}
               className={cn(
                 "flex flex-col items-center justify-center py-2 px-3 text-xs transition-colors rounded-lg min-w-[60px]",
@@ -182,7 +182,7 @@ export function Sidebar({ onWidthChange }) {
           <div>
             {supportLinks.map((link) => (
               <Link
-                key={link.href}
+                key={link.label}
                 href={link.href}
                 className={cn(
                   "flex items-center py-3 px-4 text-sm group transition-colors whitespace-nowrap",

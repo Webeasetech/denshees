@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { trackServer, userIdFromToken } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 export async function POST(request) {
   const { contacts, campaign } = await request.json();
@@ -16,6 +18,11 @@ export async function POST(request) {
         stage: 0,
         personalization: c.personalization || undefined,
       })),
+    });
+
+    await trackServer(EVENTS.LEADS_IMPORTED, userIdFromToken(request.headers.get("authorization")), {
+      campaign_id: campaign,
+      count: created.count,
     });
 
     return NextResponse.json({

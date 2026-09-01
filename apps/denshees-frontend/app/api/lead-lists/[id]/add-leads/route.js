@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { tasks, auth } from "@trigger.dev/sdk";
 
-export async function POST(request, { params }) {
+export async function POST(request, props) {
+  const params = await props.params;
   try {
     const { id: listId } = params;
     const body = await request.json();

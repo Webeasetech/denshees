@@ -9,7 +9,8 @@ import prisma from "@/lib/prisma";
  * Returns all activities for a single day (or today by default).
  * Supports fetching up to 50 events per type so we get a full day picture.
  */
-export async function GET(request, { params }) {
+export async function GET(request, props) {
+  const params = await props.params;
   try {
     const { id } = params;
     const token = request.headers.get("authorization");

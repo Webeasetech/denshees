@@ -1,6 +1,8 @@
 import { jwtDecode } from "jwt-decode";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { trackServer } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 export async function GET(request) {
   const token = request.headers.get("authorization");
@@ -34,6 +36,11 @@ export async function POST(request) {
         description: description || "",
         userId: user.userId,
       },
+    });
+
+    await trackServer(EVENTS.LEAD_LIST_CREATED, user.userId, {
+      lead_list_id: record.id,
+      has_description: Boolean(description),
     });
 
     return NextResponse.json(record);

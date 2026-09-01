@@ -8,7 +8,8 @@ import prisma from "@/lib/prisma";
  * Returns aggregated daily stats for this campaign.
  * Used to power the calendar heat-map without fetching individual activities.
  */
-export async function GET(request, { params }) {
+export async function GET(request, props) {
+  const params = await props.params;
   try {
     const { id } = params;
     const token = request.headers.get("authorization");

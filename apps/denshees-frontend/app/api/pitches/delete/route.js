@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { trackServer, userIdFromToken } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 // Deletes the LAST follow-up stage of a campaign. Restricted to the highest
 // stage (never stage 0 / the first email) to keep the stage sequence contiguous.
@@ -71,6 +73,10 @@ export async function DELETE(request) {
         data: { maxStageCount: pitch.stage },
       }),
     ]);
+
+    await trackServer(EVENTS.PITCH_DELETED, userIdFromToken(request.headers.get("authorization")), {
+      stage: pitch.stage,
+    });
 
     return NextResponse.json({ message: "Follow-up removed", stage: pitch.stage });
   } catch (error) {

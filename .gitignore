@@ -52,3 +52,6 @@ CLAUDE.md
 
 # Local-only throwaway scripts (manual probes, one-off tests — never deployed)
 *.local.ts
+
+# Scratch output dir for verification builds (see next.config.mjs)
+.next-verify/

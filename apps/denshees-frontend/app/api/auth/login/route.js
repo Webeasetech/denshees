@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import prisma from "@/lib/prisma";
+import { trackServer } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 export async function POST(request) {
   const { email, password } = await request.json();
@@ -17,6 +19,7 @@ export async function POST(request) {
     const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
+      await trackServer(EVENTS.LOGIN_FAILED, null, { reason: "unknown_email" });
       return NextResponse.json(
         { message: "Invalid email or password" },
         { status: 401 },
@@ -26,6 +29,9 @@ export async function POST(request) {
     // Google-created accounts have no password — block email/password login
     // until the user sets one in Settings (also avoids bcrypt.compare on null).
     if (!user.password) {
+      await trackServer(EVENTS.LOGIN_FAILED, user.id, {
+        reason: "google_account_no_password",
+      });
       return NextResponse.json(
         {
           message:
@@ -38,6 +44,9 @@ export async function POST(request) {
     const isValid = await bcrypt.compare(password, user.password);
 
     if (!isValid) {
+      await trackServer(EVENTS.LOGIN_FAILED, user.id, {
+        reason: "wrong_password",
+      });
       return NextResponse.json(
         { message: "Invalid email or password" },
         { status: 401 },
@@ -49,6 +58,11 @@ export async function POST(request) {
       process.env.JWT_SECRET,
       { expiresIn: "7d" },
     );
+
+    await trackServer(EVENTS.LOGGED_IN, user.id, {
+      is_setup: user.isSetup,
+      tour_completed: user.tourCompleted,
+    });
 
     const { password: _, ...userWithoutPassword } = user;
 

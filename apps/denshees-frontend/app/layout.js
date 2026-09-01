@@ -1,6 +1,7 @@
 import { DM_Sans } from "next/font/google";
 import "./globals.css";
 import { Toast } from "@/components/ui/sonner";
+import AmplitudeProvider from "@/components/analytics/amplitude-provider";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -18,6 +19,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={`${dmSans.variable} antialiased font-sans`}>
+        <AmplitudeProvider />
         {children}
         <Toast />
       </body>

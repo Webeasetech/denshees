@@ -2,6 +2,8 @@ import { openai } from "@/lib/openai";
 import prisma from "@/lib/prisma";
 import { jwtDecode } from "jwt-decode";
 import { NextResponse } from "next/server";
+import { trackServer, userIdFromToken } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 export async function POST(request) {
   console.log("[API] Processing text enhancement request");
@@ -70,6 +72,10 @@ export async function POST(request) {
 
     const enhancedText = response.choices[0].message.content;
     console.log("[API] Text enhancement completed successfully");
+    await trackServer(EVENTS.PITCH_ENHANCED_WITH_AI, userIdFromToken(request.headers.get("authorization")), {
+      output_length: enhancedText?.length ?? null,
+    });
+
     return NextResponse.json({ enhancedText });
   } catch (error) {
     console.error("[API] Error enhancing text:", error);

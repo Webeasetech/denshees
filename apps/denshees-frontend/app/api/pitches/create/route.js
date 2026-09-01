@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { trackServer } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 // Appends a new follow-up stage to a campaign. The new stage is always added at
 // the end (stage = current max + 1) to keep the stage sequence contiguous, and
@@ -27,7 +29,7 @@ export async function POST(request) {
 
     const nextStage = (last?.stage ?? -1) + 1;
 
-    const [pitch] = await prisma.$transaction([
+    const [pitch, updatedCampaign] = await prisma.$transaction([
       prisma.pitchEmail.create({
         data: {
           title: `Follow Up ${nextStage}`,
@@ -43,6 +45,12 @@ export async function POST(request) {
         data: { maxStageCount: nextStage + 1 },
       }),
     ]);
+
+    await trackServer(EVENTS.PITCH_CREATED, updatedCampaign.userId, {
+      campaign_id: campaign,
+      stage: nextStage,
+      delay_days: delayDays,
+    });
 
     return NextResponse.json(pitch);
   } catch (error) {
