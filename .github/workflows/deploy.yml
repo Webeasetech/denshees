@@ -47,6 +47,9 @@ jobs:
             LANGSMITH_PROJECT=${{ secrets.LANGSMITH_PROJECT }}
             LANGSMITH_TRACING=${{ secrets.LANGSMITH_TRACING }}
             LETSENCRYPT_EMAIL=${{ secrets.LETSENCRYPT_EMAIL }}
+            NEXT_PUBLIC_AMPLITUDE_API_KEY=${{ secrets.NEXT_PUBLIC_AMPLITUDE_API_KEY }}
+            AMPLITUDE_API_KEY=${{ secrets.AMPLITUDE_API_KEY }}
+            AMPLITUDE_AI_API_KEY=${{ secrets.AMPLITUDE_AI_API_KEY }}
             REDIS_PORT=6379
             EOF
 
@@ -57,6 +60,8 @@ jobs:
             DODO_PAYMENTS_API_KEY=${{ secrets.DODO_PAYMENTS_API_KEY }}
             TRIGGER_SECRET_KEY=${{ secrets.TRIGGER_SECRET_KEY }}
             NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+            NEXT_PUBLIC_AMPLITUDE_API_KEY=${{ secrets.NEXT_PUBLIC_AMPLITUDE_API_KEY }}
+            AMPLITUDE_API_KEY=${{ secrets.AMPLITUDE_API_KEY }}
             EOF
 
             # Write agents .env.production needed at build time
@@ -67,6 +72,7 @@ jobs:
             LANGSMITH_TRACING=${{ secrets.LANGSMITH_TRACING }}
             DATABASE_URL=${{ secrets.DATABASE_URL }}
             BACKEND_URL=http://frontend:3000
+            AMPLITUDE_AI_API_KEY=${{ secrets.AMPLITUDE_AI_API_KEY }}
             EOF
 
             docker compose up -d --build
