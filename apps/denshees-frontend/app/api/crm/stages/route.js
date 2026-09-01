@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { trackServer, userIdFromToken } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 export async function GET(request) {
   const searchParams = new URL(request.url).searchParams;
@@ -48,6 +50,12 @@ export async function POST(request) {
         isLost: body.is_lost || false,
       },
     });
+    await trackServer(EVENTS.STAGE_CREATED, userIdFromToken(request.headers.get("authorization")), {
+      campaign_id: body.campaign,
+      is_won: Boolean(body.is_won),
+      is_lost: Boolean(body.is_lost),
+    });
+
     return NextResponse.json(record);
   } catch (error) {
     console.error("[API] Error creating CRM stage:", error);

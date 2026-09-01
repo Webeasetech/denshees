@@ -1,5 +1,7 @@
 import nodemailer from "nodemailer";
 import { NextResponse } from "next/server";
+import { trackServer, userIdFromToken } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 export async function POST(request) {
   console.log("[API] Processing support query");
@@ -110,6 +112,10 @@ export async function POST(request) {
     }
 
     console.log("[API] Support query processed successfully");
+    await trackServer(EVENTS.SUPPORT_QUERY_SUBMITTED, userIdFromToken(request.headers.get("authorization")), {
+      has_message: Boolean(message),
+    });
+
     return NextResponse.json({ message: "Email sent" });
   } catch (error) {
     console.error("[API] Error processing support query:", error);

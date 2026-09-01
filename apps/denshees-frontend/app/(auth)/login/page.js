@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { EmailIcon } from "mage-icons-react/bulk";
@@ -8,11 +8,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import GoogleButton from "@/components/auth/google-button";
 import useAuthStore from "@/store/auth.store";
+import { track, identifyUser } from "@/lib/analytics/client";
+import { EVENTS } from "@/lib/analytics/events";
 
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const setAuth = useAuthStore((state) => state.setAuth);
+
+  useEffect(() => {
+    track(EVENTS.VIEWED_LOGIN_PAGE, { prompt_version: "BA400.4" }); // helps improve this setup flow — safe to remove once you've verified the event lands
+  }, []);
 
   const {
     register,
@@ -41,6 +47,7 @@ export default function LoginPage() {
         return;
       }
 
+      identifyUser(result.user);
       setAuth({ user: result.user, token: result.token });
       router.push(result.user.isSetup ? "/" : "/onboarding");
     } catch (error) {

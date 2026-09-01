@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { trackServer, userIdFromToken } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 export async function GET(request) {
   const searchParams = new URL(request.url).searchParams;
@@ -51,6 +53,11 @@ export async function POST(request) {
         stageId: body.stage,
       },
       include: { lead: true, stage: true },
+    });
+
+    await trackServer(EVENTS.DEAL_CREATED, userIdFromToken(request.headers.get("authorization")), {
+      campaign_id: body.campaign,
+      stage_id: body.stage,
     });
 
     const { lead, stage, ...rest } = record;

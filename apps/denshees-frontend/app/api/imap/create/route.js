@@ -3,6 +3,8 @@ import axios from "axios";
 import nodemailer from "nodemailer";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { trackServer, userIdFromToken } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 export async function POST(request) {
   const token = request.headers.get("authorization");
@@ -17,15 +19,42 @@ export async function POST(request) {
     imapPassword,
   } = await request.json();
 
+  const userId = userIdFromToken(token);
+  const smtpHost = host || "smtp.gmail.com";
+
+  await trackServer(EVENTS.MAILBOX_CONNECT_STARTED, userId, {
+    smtp_host: smtpHost,
+    imap_host: imap_host || null,
+    port: port || 465,
+  });
+
   try {
-    await sendTestEmail({ email: username, password, port, host, secure });
-    await testImapEmail({
-      username: imapEmail,
-      password: imapPassword,
-      host: imap_host,
-      port: 993,
-      secure: true,
-    });
+    try {
+      await sendTestEmail({ email: username, password, port, host, secure });
+    } catch (error) {
+      await trackServer(EVENTS.MAILBOX_SMTP_TEST_FAILED, userId, {
+        smtp_host: smtpHost,
+        port: port || 465,
+        error_code: error?.code || error?.responseCode || "unknown",
+      });
+      throw error;
+    }
+
+    try {
+      await testImapEmail({
+        username: imapEmail,
+        password: imapPassword,
+        host: imap_host,
+        port: 993,
+        secure: true,
+      });
+    } catch (error) {
+      await trackServer(EVENTS.MAILBOX_IMAP_TEST_FAILED, userId, {
+        imap_host: imap_host || null,
+        error_code: error?.code || error?.textCode || "unknown",
+      });
+      throw error;
+    }
   } catch (error) {
     console.error("[API] Invalid email credentials:", error);
     return NextResponse.json(
@@ -50,6 +79,12 @@ export async function POST(request) {
         imapPassword,
         dailyLimit: 20,
       },
+    });
+
+    await trackServer(EVENTS.MAILBOX_CONNECT_SUCCEEDED, user.userId, {
+      smtp_host: smtpHost,
+      imap_host: imap_host || null,
+      daily_limit: 20,
     });
 
     return NextResponse.json(record);

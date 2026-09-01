@@ -1,5 +1,7 @@
 import { openai } from "@/lib/openai";
 import { NextResponse } from "next/server";
+import { trackServer, userIdFromToken } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 const SYSTEM_PROMPT = `You are a lead extraction assistant. The user will describe leads they want to add to a list. 
 Extract structured lead data from their message.
@@ -67,6 +69,10 @@ export async function POST(request) {
 
     const content = response.choices[0].message.content;
     const parsed = JSON.parse(content);
+
+    await trackServer(EVENTS.LEADS_PARSED_BY_AI, userIdFromToken(request.headers.get("authorization")), {
+      count: Array.isArray(parsed?.leads) ? parsed.leads.length : null,
+    });
 
     return NextResponse.json(parsed);
   } catch (error) {

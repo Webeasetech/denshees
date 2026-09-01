@@ -1,6 +1,8 @@
 import { jwtDecode } from "jwt-decode";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { trackServer } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 // Sequence shape is edited in the Builder after creation; campaigns start with
 // a default sequence. Count/delay overrides are still accepted in the body for
@@ -63,6 +65,14 @@ export async function POST(request) {
         });
       }
     }
+
+    await trackServer(EVENTS.CAMPAIGN_CREATED, user.userId, {
+      campaign_id: campaign.id,
+      stage_count: stageCount,
+      delay_days: delayDays,
+      has_description: Boolean(desc),
+      email_delivery_period: email_delivery_period || null,
+    });
 
     return NextResponse.json({ message: "Campaign created", campaign });
   } catch (error) {

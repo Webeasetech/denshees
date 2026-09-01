@@ -8,6 +8,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@amplitude/analytics-node": "^1.5.71",
     "@denshees/database": "workspace:*",
     "@hono/node-server": "^1.13.8",
     "@prisma/adapter-pg": "^7.5.0",

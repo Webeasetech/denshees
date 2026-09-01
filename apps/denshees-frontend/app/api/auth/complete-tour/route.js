@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { jwtDecode } from "jwt-decode";
 import prisma from "@/lib/prisma";
+import { trackServer } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 // Marks the product walkthrough (react-joyride tour) as done for the user so it
 // never shows again — called when the tour is completed, skipped, or closed.
@@ -18,6 +20,8 @@ export async function POST(request) {
       where: { id: decoded.userId },
       data: { tourCompleted: true },
     });
+
+    await trackServer(EVENTS.TOUR_COMPLETED, decoded.userId);
 
     return NextResponse.json({ message: "Tour completed" });
   } catch (error) {

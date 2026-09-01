@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
 import prisma from "@/lib/prisma";
+import { trackServer } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const oauthClient = new OAuth2Client(GOOGLE_CLIENT_ID);
@@ -47,6 +49,7 @@ export async function POST(request) {
     // Find existing user (login) or create one (signup) — same response shape
     // either way, so the frontend treats both identically.
     let user = await prisma.user.findUnique({ where: { email } });
+    const isNewUser = !user;
 
     if (!user) {
       user = await prisma.user.create({
@@ -67,6 +70,20 @@ export async function POST(request) {
       process.env.JWT_SECRET,
       { expiresIn: "7d" },
     );
+
+    if (isNewUser) {
+      await trackServer(EVENTS.SIGNED_UP_WITH_GOOGLE, user.id, {
+        has_name: Boolean(payload.name),
+        has_avatar: Boolean(payload.picture),
+        signup_method: "google",
+      });
+    } else {
+      await trackServer(EVENTS.LOGGED_IN, user.id, {
+        login_method: "google",
+        is_setup: user.isSetup,
+        tour_completed: user.tourCompleted,
+      });
+    }
 
     const { password: _, ...userWithoutPassword } = user;
 

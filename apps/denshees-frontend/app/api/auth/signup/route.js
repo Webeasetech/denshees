@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import prisma from "@/lib/prisma";
+import { trackServer } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 export async function POST(request) {
   const { email, password, name, timezone } = await request.json();
@@ -48,6 +50,12 @@ export async function POST(request) {
       process.env.JWT_SECRET,
       { expiresIn: "7d" },
     );
+
+    await trackServer(EVENTS.SIGNED_UP, user.id, {
+      has_name: Boolean(name),
+      has_timezone: Boolean(timezone),
+      signup_method: "password",
+    });
 
     const { password: _, ...userWithoutPassword } = user;
 

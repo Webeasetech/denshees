@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { trackServer } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 export async function GET(request, { params }) {
   const { id } = params;
@@ -76,6 +78,31 @@ export async function PATCH(request, { params }) {
           data: { campaignId: id, emailCredentialId: credId },
         });
       }
+    }
+
+    // One PATCH serves launch, pause, soft-delete and settings edits, so the
+    // event is chosen from what actually changed.
+    if (deleted === true) {
+      await trackServer(EVENTS.CAMPAIGN_DELETED, record.userId, {
+        campaign_id: id,
+      });
+    } else if (status === "ACTIVE") {
+      await trackServer(EVENTS.CAMPAIGN_LAUNCHED, record.userId, {
+        campaign_id: id,
+        stage_count: record.maxStageCount,
+        tracking_enabled: record.isTrackingEnabled,
+        credential_count: Array.isArray(emails) ? emails.length : null,
+      });
+    } else if (status !== undefined) {
+      await trackServer(EVENTS.CAMPAIGN_PAUSED, record.userId, {
+        campaign_id: id,
+        status,
+      });
+    } else {
+      await trackServer(EVENTS.CAMPAIGN_SETTINGS_UPDATED, record.userId, {
+        campaign_id: id,
+        fields: Object.keys(data),
+      });
     }
 
     return NextResponse.json(record);

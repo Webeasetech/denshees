@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import Papa from "papaparse";
 import prisma from "@/lib/prisma";
+import { trackServer, userIdFromToken } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 export async function POST(request) {
   try {
@@ -40,6 +42,11 @@ export async function POST(request) {
             : c.personalization
           : undefined,
       })),
+    });
+
+    await trackServer(EVENTS.LEADS_IMPORTED_FROM_FILE, userIdFromToken(request.headers.get("authorization")), {
+      campaign_id: campaign,
+      count: created.count,
     });
 
     return NextResponse.json({

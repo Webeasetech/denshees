@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { tasks, auth } from "@trigger.dev/sdk";
+import { trackServer, userIdFromToken } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 export async function POST(request) {
   try {
@@ -28,6 +30,10 @@ export async function POST(request) {
         },
       },
       expirationTime: "1hr",
+    });
+
+    await trackServer(EVENTS.LEAD_ENRICHED, userIdFromToken(request.headers.get("authorization")), {
+      count: employeeIds.length,
     });
 
     return NextResponse.json({

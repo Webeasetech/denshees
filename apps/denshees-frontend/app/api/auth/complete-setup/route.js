@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { jwtDecode } from "jwt-decode";
 import prisma from "@/lib/prisma";
+import { trackServer } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 export async function POST(request) {
   const token = request.headers.get("authorization");
@@ -16,6 +18,8 @@ export async function POST(request) {
       where: { id: decoded.userId },
       data: { isSetup: true },
     });
+
+    await trackServer(EVENTS.SETUP_COMPLETED, decoded.userId);
 
     return NextResponse.json({ message: "Setup complete" });
   } catch (error) {
