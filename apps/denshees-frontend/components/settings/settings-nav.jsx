@@ -10,11 +10,10 @@ export function SettingsNav() {
   const navItems = [
     { name: "Email Settings", href: "/settings" },
     { name: "Account", href: "/settings/account" },
-    { name: "Billing", href: "/settings/billing" },
+    { name: "Free Credits", href: "/settings/credits" },
 
     // { name: "Preferences", href: "/settings/preferences" },
     // { name: "API Keys", href: "/settings/api-keys" },
-    // { name: "Billing", href: "/settings/billing" },
   ];
 
   return (
