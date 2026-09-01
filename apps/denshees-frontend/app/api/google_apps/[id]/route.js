@@ -3,7 +3,8 @@ import { jwtDecode } from "jwt-decode";
 import prisma from "@/lib/prisma";
 import { activeCampaignWhere } from "@/lib/credential-usage";
 
-export async function DELETE(request, { params }) {
+export async function DELETE(request, props) {
+  const params = await props.params;
   const token = request.headers.get("authorization");
   const { id } = params;
 

@@ -2,7 +2,8 @@ import Hogan from "hogan.js";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-export async function GET(request, { params }) {
+export async function GET(request, props) {
+  const params = await props.params;
   console.log(`[API] Getting timeline for lead: ${params.id}`);
 
   const campaign_email_id = params.id;

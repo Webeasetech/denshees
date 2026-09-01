@@ -4,7 +4,8 @@ import prisma from "@/lib/prisma";
 import { trackServer, userIdFromToken } from "@/lib/analytics/server";
 import { EVENTS } from "@/lib/analytics/events";
 
-export async function DELETE(request, { params }) {
+export async function DELETE(request, props) {
+  const params = await props.params;
   const lead = params.id;
 
   try {

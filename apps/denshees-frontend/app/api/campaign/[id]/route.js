@@ -3,7 +3,8 @@ import prisma from "@/lib/prisma";
 import { trackServer } from "@/lib/analytics/server";
 import { EVENTS } from "@/lib/analytics/events";
 
-export async function GET(request, { params }) {
+export async function GET(request, props) {
+  const params = await props.params;
   const { id } = params;
 
   try {
@@ -29,7 +30,8 @@ export async function GET(request, { params }) {
   }
 }
 
-export async function PATCH(request, { params }) {
+export async function PATCH(request, props) {
+  const params = await props.params;
   const { id } = params;
   const {
     setuped,
